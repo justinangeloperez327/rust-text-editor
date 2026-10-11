@@ -4,6 +4,7 @@ members = [
   "apps/desktop",
   "crates/ide-core",
   "crates/ide-document",
+  "crates/ide-settings",
 ]
 
 [workspace.package]
