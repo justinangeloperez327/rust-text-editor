@@ -1,4 +1,6 @@
-use gpui::{App, Application, Context, IntoElement, Render, Window, WindowOptions, div, prelude::*, rgb};
+use gpui::{
+    App, Application, Context, IntoElement, Render, Window, WindowOptions, div, prelude::*, rgb,
+};
 
 struct EditorShell;
 
