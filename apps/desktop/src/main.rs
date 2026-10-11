@@ -28,13 +28,15 @@ impl Render for EditorShell {
                 div()
                     .flex_1()
                     .flex()
-                    .when(self.show_sidebar, |this| this.child(
-                        div()
-                            .w(gpui::px(220.0))
-                            .p_3()
-                            .bg(rgb(0x252526))
-                            .child("EXPLORER"),
-                    ))
+                    .when(self.show_sidebar, |this| {
+                        this.child(
+                            div()
+                                .w(gpui::px(220.0))
+                                .p_3()
+                                .bg(rgb(0x252526))
+                                .child("EXPLORER"),
+                        )
+                    })
                     .child(
                         div()
                             .flex_1()
@@ -44,21 +46,26 @@ impl Render for EditorShell {
                             .child("Welcome to Rust Text Editor"),
                     ),
             )
-            .when(self.show_status_bar, |this| this.child(
-                div()
-                    .h(gpui::px(24.0))
-                    .flex()
-                    .items_center()
-                    .px_3()
-                    .bg(rgb(0x007acc))
-                    .child("Rust IDE  ·  Group 2"),
-            ))
+            .when(self.show_status_bar, |this| {
+                this.child(
+                    div()
+                        .h(gpui::px(24.0))
+                        .flex()
+                        .items_center()
+                        .px_3()
+                        .bg(rgb(0x007acc))
+                        .child("Rust IDE  ·  Group 2"),
+                )
+            })
     }
 }
 
 fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
         .try_init()
         .ok();
     let mut lifecycle = ide_core::state::ApplicationState::default();
