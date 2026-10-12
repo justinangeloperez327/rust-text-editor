@@ -148,8 +148,8 @@ fn main() {
 
     tracing::info!(app = ide_core::APPLICATION_NAME, "starting native IDE");
     Application::new().run(move |cx: &mut App| {
-        cx.open_window(WindowOptions::default(), |_window, cx| {
-            cx.new(|_| EditorShell { layout })
+        cx.open_window(WindowOptions::default(), move |_window, cx| {
+            cx.new(move |_| EditorShell { layout })
         })
         .expect("could not open the editor window");
         cx.activate(true);
