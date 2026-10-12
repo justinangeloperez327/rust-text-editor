@@ -1,5 +1,6 @@
 //! UI-independent application primitives.
 
+pub mod layout;
 pub mod state;
 
 pub const APPLICATION_NAME: &str = "Rust Text Editor";
