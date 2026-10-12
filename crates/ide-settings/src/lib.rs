@@ -16,6 +16,7 @@ pub struct EditorSettings {
     pub panel_height: u16,
     pub sidebar_view: String,
     pub active_panel_tab: String,
+    pub panel_dock: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -37,6 +38,7 @@ impl Default for EditorSettings {
             panel_height: 180,
             sidebar_view: "explorer".to_owned(),
             active_panel_tab: "terminal".to_owned(),
+            panel_dock: "bottom".to_owned(),
         }
     }
 }
@@ -95,6 +97,9 @@ impl EditorSettings {
             "problems" | "output" | "debug-console" | "terminal"
         ) {
             return Err("active_panel_tab is not recognized");
+        }
+        if !matches!(self.panel_dock.as_str(), "bottom" | "right" | "left") {
+            return Err("panel_dock is not recognized");
         }
         Ok(())
     }
