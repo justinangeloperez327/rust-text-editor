@@ -303,20 +303,6 @@ impl Render for EditorShell {
                                         this.drag = Some((ResizeTarget::Sidebar, event.position.x.into()));
                                     }),
                                 ),
-                                )
-                                .child(
-                                    div()
-                                        .id("left-panel-resize-handle")
-                                        .w(gpui::px(5.0))
-                                        .bg(rgb(0x303030))
-                                        .on_mouse_down(
-                                            gpui::MouseButton::Left,
-                                            cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
-                                                this.drag = Some((ResizeTarget::Panel, event.position.x.into()));
-                                            }),
-                                        ),
-                                ),
-                                ),
                         )
                     })
                     .child(
