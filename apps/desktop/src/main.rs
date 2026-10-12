@@ -1,7 +1,7 @@
 use gpui::{
     App, Application, Context, IntoElement, Render, Window, WindowOptions, div, prelude::*, rgb,
 };
-use ide_core::layout::{BottomPanelTab, PanelDock, SidebarView, WorkspaceLayout};
+use ide_core::layout::{BottomPanelTab, PanelDock, ResizeRegion, SidebarView, WorkspaceLayout};
 
 #[derive(Clone, Copy)]
 enum ResizeTarget {
@@ -26,25 +26,11 @@ impl EditorShell {
             ResizeTarget::Panel => x,
         };
         let difference = current - previous;
-        let signed_delta = match target {
-            ResizeTarget::Panel if self.layout.panel_dock == PanelDock::Bottom => -difference,
-            ResizeTarget::Panel if self.layout.panel_dock == PanelDock::Left => difference,
-            ResizeTarget::Panel => -difference,
-            ResizeTarget::Sidebar => difference,
+        let region = match target {
+            ResizeTarget::Sidebar => ResizeRegion::Sidebar,
+            ResizeTarget::Panel => ResizeRegion::Panel,
         };
-        if signed_delta.abs() >= 1.0 {
-            match target {
-                ResizeTarget::Sidebar => self.layout.set_sidebar_width(
-                    (f32::from(self.layout.sidebar_width) + signed_delta)
-                        .round()
-                        .clamp(160.0, 600.0) as u16,
-                ),
-                ResizeTarget::Panel => self.layout.set_panel_height(
-                    (f32::from(self.layout.panel_height) + signed_delta)
-                        .round()
-                        .clamp(100.0, 480.0) as u16,
-                ),
-            }
+        if self.layout.resize_by(region, difference) {
             self.drag = Some((target, current));
             cx.notify();
         }
