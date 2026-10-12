@@ -144,7 +144,10 @@ mod tests {
         layout.select_panel_tab(BottomPanelTab::Problems);
         assert!(layout.panel_visible);
         assert_eq!(layout.active_panel_tab, BottomPanelTab::Problems);
-        assert_eq!(layout.active_panel_tab.empty_message(), "No problems detected");
+        assert_eq!(
+            layout.active_panel_tab.empty_message(),
+            "No problems detected"
+        );
     }
 
     #[test]
