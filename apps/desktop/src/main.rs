@@ -255,6 +255,9 @@ impl Render for EditorShell {
                     .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Left, |this| {
                         this.child(
                             div()
+                                .flex()
+                                .child(
+                                    div()
                                 .w(gpui::px(f32::from(self.layout.panel_height)))
                                 .flex()
                                 .flex_col()
@@ -286,6 +289,20 @@ impl Render for EditorShell {
                                     cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
                                         this.drag = Some((ResizeTarget::Sidebar, event.position.x.into()));
                                     }),
+                                ),
+                                )
+                                .child(
+                                    div()
+                                        .id("left-panel-resize-handle")
+                                        .w(gpui::px(5.0))
+                                        .bg(rgb(0x303030))
+                                        .on_mouse_down(
+                                            gpui::MouseButton::Left,
+                                            cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
+                                                this.drag = Some((ResizeTarget::Panel, event.position.x.into()));
+                                            }),
+                                        ),
+                                ),
                                 ),
                         )
                     })
@@ -437,6 +454,21 @@ impl Render for EditorShell {
                     .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Right, |this| {
                         this.child(
                             div()
+                                .flex()
+                                .child(
+                                    div()
+                                        .id("right-panel-resize-handle")
+                                        .w(gpui::px(5.0))
+                                        .bg(rgb(0x303030))
+                                        .on_mouse_down(
+                                            gpui::MouseButton::Left,
+                                            cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
+                                                this.drag = Some((ResizeTarget::Panel, event.position.x.into()));
+                                            }),
+                                        ),
+                                )
+                                .child(
+                                    div()
                                 .w(gpui::px(f32::from(self.layout.panel_height)))
                                 .flex()
                                 .flex_col()
