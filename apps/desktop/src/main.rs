@@ -3,12 +3,53 @@ use gpui::{
 };
 use ide_core::layout::{BottomPanelTab, PanelDock, SidebarView, WorkspaceLayout};
 
+#[derive(Clone, Copy)]
+enum ResizeTarget {
+    Sidebar,
+    Panel,
+}
+
 struct EditorShell {
     layout: WorkspaceLayout,
     settings_path: Option<std::path::PathBuf>,
+    drag: Option<(ResizeTarget, f32)>,
 }
 
 impl EditorShell {
+    fn update_drag(&mut self, x: f32, y: f32, cx: &mut Context<Self>) {
+        let Some((target, previous)) = self.drag else {
+            return;
+        };
+        let current = match target {
+            ResizeTarget::Sidebar => x,
+            ResizeTarget::Panel if self.layout.panel_dock == PanelDock::Bottom => y,
+            ResizeTarget::Panel => x,
+        };
+        let difference = current - previous;
+        let signed_delta = match target {
+            ResizeTarget::Panel if self.layout.panel_dock == PanelDock::Bottom => -difference,
+            ResizeTarget::Panel if self.layout.panel_dock == PanelDock::Left => difference,
+            ResizeTarget::Panel => -difference,
+            ResizeTarget::Sidebar => difference,
+        };
+        if signed_delta.abs() >= 1.0 {
+            match target {
+                ResizeTarget::Sidebar => self.layout.set_sidebar_width(
+                    (f32::from(self.layout.sidebar_width) + signed_delta)
+                        .round()
+                        .clamp(160.0, 600.0) as u16,
+                ),
+                ResizeTarget::Panel => self.layout.set_panel_height(
+                    (f32::from(self.layout.panel_height) + signed_delta)
+                        .round()
+                        .clamp(100.0, 480.0) as u16,
+                ),
+            }
+            self.drag = Some((target, current));
+            cx.notify();
+        }
+    }
+
     fn save_layout(&self) {
         let Some(path) = self.settings_path.as_deref() else {
             return;
@@ -37,6 +78,14 @@ impl Render for EditorShell {
             .bg(rgb(0x1e1e1e))
             .text_color(rgb(0xd4d4d4))
             .text_sm()
+            .on_mouse_move(cx.listener(|this, event: &gpui::MouseMoveEvent, _, cx| {
+                this.update_drag(event.position.x.into(), event.position.y.into(), cx);
+            }))
+            .on_mouse_up(gpui::MouseButton::Left, cx.listener(|this, _, _, _| {
+                if this.drag.take().is_some() {
+                    this.save_layout();
+                }
+            }))
             .child(
                 div()
                     .h(gpui::px(34.0))
@@ -226,6 +275,20 @@ impl Render for EditorShell {
                                 ),
                         )
                     })
+                    .when(self.layout.sidebar_visible, |this| {
+                        this.child(
+                            div()
+                                .id("sidebar-resize-handle")
+                                .w(gpui::px(5.0))
+                                .bg(rgb(0x303030))
+                                .on_mouse_down(
+                                    gpui::MouseButton::Left,
+                                    cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
+                                        this.drag = Some((ResizeTarget::Sidebar, event.position.x.into()));
+                                    }),
+                                ),
+                        )
+                    })
                     .child(
                         div()
                             .flex_1()
@@ -250,6 +313,18 @@ impl Render for EditorShell {
                             )
                             .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Bottom, |this| {
                                 this.child(
+                                    div()
+                                        .id("bottom-resize-handle")
+                                        .h(gpui::px(5.0))
+                                        .bg(rgb(0x303030))
+                                        .on_mouse_down(
+                                            gpui::MouseButton::Left,
+                                            cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
+                                                this.drag = Some((ResizeTarget::Panel, event.position.y.into()));
+                                            }),
+                                        ),
+                                )
+                                .child(
                                     div()
                                         .h(gpui::px(f32::from(self.layout.panel_height)))
                                         .flex()
@@ -450,6 +525,7 @@ fn main() {
             cx.new(move |_| EditorShell {
                 layout,
                 settings_path,
+                drag: None,
             })
         })
         .expect("could not open the editor window");
