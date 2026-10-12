@@ -2,6 +2,7 @@
 //! Filesystem location and persistence are delegated to the desktop adapter.
 
 use serde::{Deserialize, Serialize};
+use std::{fs, io, path::Path};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -37,6 +38,30 @@ impl Default for EditorSettings {
 }
 
 impl EditorSettings {
+    /// Load settings from disk, or return defaults when the file does not exist.
+    pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let content = match fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                return Ok(Self::default());
+            }
+            Err(error) => return Err(Box::new(error)),
+        };
+        let settings = Self::parse(&content)?;
+        settings.validate().map_err(io::Error::other)?;
+        Ok(settings)
+    }
+
+    /// Persist preferences using TOML; creates the configuration directory.
+    pub fn save(&self, path: &Path) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.validate().map_err(io::Error::other)?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, self.to_toml()?)?;
+        Ok(())
+    }
+
     pub fn parse(text: &str) -> Result<Self, toml::de::Error> {
         toml::from_str(text)
     }
