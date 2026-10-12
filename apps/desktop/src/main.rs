@@ -1,14 +1,14 @@
 use gpui::{
     App, Application, Context, IntoElement, Render, Window, WindowOptions, div, prelude::*, rgb,
 };
-use ide_core::layout::WorkspaceLayout;
+use ide_core::layout::{SidebarView, WorkspaceLayout};
 
 struct EditorShell {
     layout: WorkspaceLayout,
 }
 
 impl Render for EditorShell {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .size_full()
             .flex()
@@ -38,11 +38,56 @@ impl Render for EditorShell {
                             .gap_4()
                             .py_4()
                             .bg(rgb(0x181818))
-                            .child("F")
-                            .child("S")
-                            .child("G")
-                            .child("R")
-                            .child("X"),
+                            .child(
+                                div()
+                                    .id("activity-explorer")
+                                    .cursor_pointer()
+                                    .child("F")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.layout.select_view(SidebarView::Explorer);
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                div()
+                                    .id("activity-search")
+                                    .cursor_pointer()
+                                    .child("S")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.layout.select_view(SidebarView::Search);
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                div()
+                                    .id("activity-source-control")
+                                    .cursor_pointer()
+                                    .child("G")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.layout.select_view(SidebarView::SourceControl);
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                div()
+                                    .id("activity-debug")
+                                    .cursor_pointer()
+                                    .child("R")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.layout.select_view(SidebarView::Run);
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                div()
+                                    .id("activity-extensions")
+                                    .cursor_pointer()
+                                    .child("X")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.layout.select_view(SidebarView::Extensions);
+                                        cx.notify();
+                                    })),
+                            ),
                     )
                     .when(self.layout.sidebar_visible, |this| {
                         this.child(
@@ -103,7 +148,18 @@ impl Render for EditorShell {
                                                 .flex()
                                                 .items_center()
                                                 .px_3()
-                                                .child("PROBLEMS      OUTPUT      DEBUG CONSOLE      TERMINAL"),
+                                                .child("PROBLEMS      OUTPUT      DEBUG CONSOLE      TERMINAL")
+                                                .child(
+                                                    div()
+                                                        .id("hide-panel")
+                                                        .cursor_pointer()
+                                                        .ml_auto()
+                                                        .child("×")
+                                                        .on_click(cx.listener(|this, _, _, cx| {
+                                                            this.layout.toggle_panel();
+                                                            cx.notify();
+                                                        })),
+                                                ),
                                         )
                                         .child(
                                             div()
@@ -124,7 +180,18 @@ impl Render for EditorShell {
                         .items_center()
                         .px_3()
                         .bg(rgb(0x007acc))
-                        .child("main     UTF-8      Rust Text Editor"),
+                        .child("main     UTF-8      Rust Text Editor")
+                        .child(
+                            div()
+                                .id("toggle-panel")
+                                .cursor_pointer()
+                                .ml_auto()
+                                .child("Toggle Panel")
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.layout.toggle_panel();
+                                    cx.notify();
+                                })),
+                        ),
                 )
             })
     }
