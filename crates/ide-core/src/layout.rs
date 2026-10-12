@@ -99,10 +99,39 @@ impl BottomPanelTab {
     }
 }
 
+/// Preferred placement for the auxiliary tool panel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PanelDock {
+    #[default]
+    Bottom,
+    Right,
+    Left,
+}
+
+impl PanelDock {
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::Bottom => "bottom",
+            Self::Right => "right",
+            Self::Left => "left",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        match key {
+            "bottom" => Some(Self::Bottom),
+            "right" => Some(Self::Right),
+            "left" => Some(Self::Left),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WorkspaceLayout {
     pub sidebar_view: SidebarView,
     pub active_panel_tab: BottomPanelTab,
+    pub panel_dock: PanelDock,
     pub sidebar_visible: bool,
     pub panel_visible: bool,
     pub status_bar_visible: bool,
@@ -115,6 +144,7 @@ impl Default for WorkspaceLayout {
         Self {
             sidebar_view: SidebarView::Explorer,
             active_panel_tab: BottomPanelTab::Terminal,
+            panel_dock: PanelDock::Bottom,
             sidebar_visible: true,
             panel_visible: true,
             status_bar_visible: true,
@@ -139,6 +169,11 @@ impl WorkspaceLayout {
 
     pub fn select_panel_tab(&mut self, tab: BottomPanelTab) {
         self.active_panel_tab = tab;
+        self.panel_visible = true;
+    }
+
+    pub fn set_panel_dock(&mut self, dock: PanelDock) {
+        self.panel_dock = dock;
         self.panel_visible = true;
     }
 
@@ -192,6 +227,21 @@ mod tests {
         layout.set_panel_height(2000);
         assert_eq!(layout.sidebar_width, 160);
         assert_eq!(layout.panel_height, 480);
+    }
+
+    #[test]
+    fn panel_dock_round_trip_and_visibility() {
+        let mut layout = WorkspaceLayout {
+            panel_visible: false,
+            ..WorkspaceLayout::default()
+        };
+        for dock in [PanelDock::Bottom, PanelDock::Right, PanelDock::Left] {
+            assert_eq!(PanelDock::from_key(dock.key()), Some(dock));
+            layout.set_panel_dock(dock);
+            assert_eq!(layout.panel_dock, dock);
+            assert!(layout.panel_visible);
+        }
+        assert_eq!(PanelDock::from_key("unknown"), None);
     }
 
     #[test]
