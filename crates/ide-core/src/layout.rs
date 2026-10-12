@@ -19,6 +19,27 @@ impl SidebarView {
         Self::Extensions,
     ];
 
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::Explorer => "explorer",
+            Self::Search => "search",
+            Self::SourceControl => "source-control",
+            Self::Run => "run",
+            Self::Extensions => "extensions",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        match key {
+            "explorer" => Some(Self::Explorer),
+            "search" => Some(Self::Search),
+            "source-control" => Some(Self::SourceControl),
+            "run" => Some(Self::Run),
+            "extensions" => Some(Self::Extensions),
+            _ => None,
+        }
+    }
+
     pub const fn title(self) -> &'static str {
         match self {
             Self::Explorer => "EXPLORER",
@@ -40,6 +61,25 @@ pub enum BottomPanelTab {
 }
 
 impl BottomPanelTab {
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::Problems => "problems",
+            Self::Output => "output",
+            Self::DebugConsole => "debug-console",
+            Self::Terminal => "terminal",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        match key {
+            "problems" => Some(Self::Problems),
+            "output" => Some(Self::Output),
+            "debug-console" => Some(Self::DebugConsole),
+            "terminal" => Some(Self::Terminal),
+            _ => None,
+        }
+    }
+
     pub const fn title(self) -> &'static str {
         match self {
             Self::Problems => "PROBLEMS",
@@ -119,6 +159,23 @@ impl WorkspaceLayout {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn view_keys_round_trip() {
+        for view in SidebarView::ALL {
+            assert_eq!(SidebarView::from_key(view.key()), Some(view));
+        }
+        for tab in [
+            BottomPanelTab::Problems,
+            BottomPanelTab::Output,
+            BottomPanelTab::DebugConsole,
+            BottomPanelTab::Terminal,
+        ] {
+            assert_eq!(BottomPanelTab::from_key(tab.key()), Some(tab));
+        }
+        assert_eq!(SidebarView::from_key("invalid"), None);
+        assert_eq!(BottomPanelTab::from_key("invalid"), None);
+    }
 
     #[test]
     fn layout_has_expected_defaults() {
