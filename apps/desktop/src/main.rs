@@ -258,23 +258,36 @@ impl Render for EditorShell {
                                 .flex()
                                 .child(
                                     div()
-                                .w(gpui::px(f32::from(self.layout.panel_height)))
-                                .flex()
-                                .flex_col()
-                                .bg(rgb(0x181818))
-                                .child(
-                                    div()
-                                        .h(gpui::px(36.0))
-                                        .flex()
-                                        .items_center()
-                                        .px_3()
-                                        .child(self.layout.active_panel_tab.title()),
+                                            .w(gpui::px(f32::from(self.layout.panel_height)))
+                                            .flex()
+                                            .flex_col()
+                                            .bg(rgb(0x181818))
+                                            .child(
+                                                div()
+                                                    .h(gpui::px(36.0))
+                                                    .flex()
+                                                    .items_center()
+                                                    .px_3()
+                                                    .child(self.layout.active_panel_tab.title()),
+                                            )
+                                            .child(
+                                                div()
+                                                    .p_3()
+                                                    .text_color(rgb(0x999999))
+                                                    .child(self.layout.active_panel_tab.empty_message()),
+                                            ),
                                 )
                                 .child(
                                     div()
-                                        .p_3()
-                                        .text_color(rgb(0x999999))
-                                        .child(self.layout.active_panel_tab.empty_message()),
+                                            .id("left-panel-resize-handle")
+                                            .w(gpui::px(5.0))
+                                            .bg(rgb(0x303030))
+                                            .on_mouse_down(
+                                                gpui::MouseButton::Left,
+                                                cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
+                                                    this.drag = Some((ResizeTarget::Panel, event.position.x.into()));
+                                                }),
+                                            ),
                                 ),
                         )
                     })
@@ -457,35 +470,36 @@ impl Render for EditorShell {
                                 .flex()
                                 .child(
                                     div()
-                                        .id("right-panel-resize-handle")
-                                        .w(gpui::px(5.0))
-                                        .bg(rgb(0x303030))
-                                        .on_mouse_down(
-                                            gpui::MouseButton::Left,
-                                            cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
-                                                this.drag = Some((ResizeTarget::Panel, event.position.x.into()));
-                                            }),
-                                        ),
+                                            .id("right-panel-resize-handle")
+                                            .w(gpui::px(5.0))
+                                            .bg(rgb(0x303030))
+                                            .on_mouse_down(
+                                                gpui::MouseButton::Left,
+                                                cx.listener(|this, event: &gpui::MouseDownEvent, _, _| {
+                                                    this.drag = Some((ResizeTarget::Panel, event.position.x.into()));
+                                                }),
+                                            ),
                                 )
                                 .child(
                                     div()
-                                .w(gpui::px(f32::from(self.layout.panel_height)))
-                                .flex()
-                                .flex_col()
-                                .bg(rgb(0x181818))
-                                .child(
-                                    div()
-                                        .h(gpui::px(36.0))
-                                        .flex()
-                                        .items_center()
-                                        .px_3()
-                                        .child(self.layout.active_panel_tab.title()),
-                                )
-                                .child(
-                                    div()
-                                        .p_3()
-                                        .text_color(rgb(0x999999))
-                                        .child(self.layout.active_panel_tab.empty_message()),
+                                            .w(gpui::px(f32::from(self.layout.panel_height)))
+                                            .flex()
+                                            .flex_col()
+                                            .bg(rgb(0x181818))
+                                            .child(
+                                                div()
+                                                    .h(gpui::px(36.0))
+                                                    .flex()
+                                                    .items_center()
+                                                    .px_3()
+                                                    .child(self.layout.active_panel_tab.title()),
+                                            )
+                                            .child(
+                                                div()
+                                                    .p_3()
+                                                    .text_color(rgb(0x999999))
+                                                    .child(self.layout.active_panel_tab.empty_message()),
+                                            ),
                                 ),
                         )
                     }),
