@@ -128,6 +128,12 @@ impl PanelDock {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResizeRegion {
+    Sidebar,
+    Panel,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WorkspaceLayout {
     pub sidebar_view: SidebarView,
     pub active_panel_tab: BottomPanelTab,
@@ -163,6 +169,36 @@ impl WorkspaceLayout {
         self.panel_height = height.clamp(100, 480);
     }
 
+    /// Apply a pointer delta to the selected splitter.
+    ///
+    /// The delta is measured in screen coordinates. A bottom dock grows
+    /// when dragged upward; a right dock grows when dragged leftward.
+    pub fn resize_by(&mut self, target: ResizeRegion, pointer_delta: f32) -> bool {
+        if !pointer_delta.is_finite() {
+            return false;
+        }
+        let signed_delta = match target {
+            ResizeRegion::Sidebar => pointer_delta,
+            ResizeRegion::Panel if self.panel_dock == PanelDock::Left => pointer_delta,
+            ResizeRegion::Panel => -pointer_delta,
+        };
+        let (current, min, max) = match target {
+            ResizeRegion::Sidebar => (self.sidebar_width, 160.0, 600.0),
+            ResizeRegion::Panel => (self.panel_height, 100.0, 480.0),
+        };
+        let updated = (f32::from(current) + signed_delta)
+            .round()
+            .clamp(min, max) as u16;
+        if updated == current {
+            return false;
+        }
+        match target {
+            ResizeRegion::Sidebar => self.sidebar_width = updated,
+            ResizeRegion::Panel => self.panel_height = updated,
+        }
+        true
+    }
+
     pub fn toggle_sidebar(&mut self) {
         self.sidebar_visible = !self.sidebar_visible;
     }
@@ -194,6 +230,25 @@ impl WorkspaceLayout {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resize_respects_dock_directions_and_bounds() {
+        let mut layout = WorkspaceLayout::default();
+        assert!(layout.resize_by(ResizeRegion::Sidebar, 50.0));
+        assert_eq!(layout.sidebar_width, 290);
+        assert!(layout.resize_by(ResizeRegion::Panel, -40.0));
+        assert_eq!(layout.panel_height, 220);
+        layout.set_panel_dock(PanelDock::Left);
+        assert!(layout.resize_by(ResizeRegion::Panel, 40.0));
+        assert_eq!(layout.panel_height, 260);
+        layout.set_panel_dock(PanelDock::Right);
+        assert!(layout.resize_by(ResizeRegion::Panel, 40.0));
+        assert_eq!(layout.panel_height, 220);
+        assert!(layout.resize_by(ResizeRegion::Sidebar, -1000.0));
+        assert_eq!(layout.sidebar_width, 160);
+        assert!(!layout.resize_by(ResizeRegion::Sidebar, -50.0));
+        assert!(!layout.resize_by(ResizeRegion::Panel, f32::NAN));
+    }
 
     #[test]
     fn view_keys_round_trip() {
