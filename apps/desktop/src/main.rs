@@ -212,6 +212,9 @@ fn main() {
     let layout = WorkspaceLayout {
         sidebar_visible: settings.show_sidebar,
         status_bar_visible: settings.show_status_bar,
+        panel_visible: settings.show_panel,
+        sidebar_width: settings.sidebar_width,
+        panel_height: settings.panel_height,
         ..WorkspaceLayout::default()
     };
 
