@@ -30,9 +30,39 @@ impl SidebarView {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BottomPanelTab {
+    Problems,
+    Output,
+    DebugConsole,
+    #[default]
+    Terminal,
+}
+
+impl BottomPanelTab {
+    pub const fn title(self) -> &'static str {
+        match self {
+            Self::Problems => "PROBLEMS",
+            Self::Output => "OUTPUT",
+            Self::DebugConsole => "DEBUG CONSOLE",
+            Self::Terminal => "TERMINAL",
+        }
+    }
+
+    pub const fn empty_message(self) -> &'static str {
+        match self {
+            Self::Problems => "No problems detected",
+            Self::Output => "No output available",
+            Self::DebugConsole => "No active debug session",
+            Self::Terminal => "No active terminal",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WorkspaceLayout {
     pub sidebar_view: SidebarView,
+    pub active_panel_tab: BottomPanelTab,
     pub sidebar_visible: bool,
     pub panel_visible: bool,
     pub status_bar_visible: bool,
@@ -44,6 +74,7 @@ impl Default for WorkspaceLayout {
     fn default() -> Self {
         Self {
             sidebar_view: SidebarView::Explorer,
+            active_panel_tab: BottomPanelTab::Terminal,
             sidebar_visible: true,
             panel_visible: true,
             status_bar_visible: true,
@@ -64,6 +95,11 @@ impl WorkspaceLayout {
 
     pub fn toggle_sidebar(&mut self) {
         self.sidebar_visible = !self.sidebar_visible;
+    }
+
+    pub fn select_panel_tab(&mut self, tab: BottomPanelTab) {
+        self.active_panel_tab = tab;
+        self.panel_visible = true;
     }
 
     pub fn toggle_panel(&mut self) {
@@ -99,6 +135,16 @@ mod tests {
         layout.set_panel_height(2000);
         assert_eq!(layout.sidebar_width, 160);
         assert_eq!(layout.panel_height, 480);
+    }
+
+    #[test]
+    fn selecting_panel_tab_opens_panel() {
+        let mut layout = WorkspaceLayout::default();
+        layout.panel_visible = false;
+        layout.select_panel_tab(BottomPanelTab::Problems);
+        assert!(layout.panel_visible);
+        assert_eq!(layout.active_panel_tab, BottomPanelTab::Problems);
+        assert_eq!(layout.active_panel_tab.empty_message(), "No problems detected");
     }
 
     #[test]
