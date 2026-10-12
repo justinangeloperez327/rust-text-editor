@@ -19,6 +19,8 @@ impl EditorShell {
         settings.show_panel = self.layout.panel_visible;
         settings.sidebar_width = self.layout.sidebar_width;
         settings.panel_height = self.layout.panel_height;
+        settings.sidebar_view = self.layout.sidebar_view.key().to_owned();
+        settings.active_panel_tab = self.layout.active_panel_tab.key().to_owned();
         if let Err(error) = settings.save(path) {
             tracing::warn!(%error, "could not persist workspace layout");
         }
@@ -206,6 +208,7 @@ impl Render for EditorShell {
                                                         .child("PROBLEMS")
                                                         .on_click(cx.listener(|this, _, _, cx| {
                                                             this.layout.select_panel_tab(BottomPanelTab::Problems);
+                                                            this.save_layout();
                                                             cx.notify();
                                                         })),
                                                 )
@@ -217,6 +220,7 @@ impl Render for EditorShell {
                                                         .child("OUTPUT")
                                                         .on_click(cx.listener(|this, _, _, cx| {
                                                             this.layout.select_panel_tab(BottomPanelTab::Output);
+                                                            this.save_layout();
                                                             cx.notify();
                                                         })),
                                                 )
@@ -228,6 +232,7 @@ impl Render for EditorShell {
                                                         .child("DEBUG CONSOLE")
                                                         .on_click(cx.listener(|this, _, _, cx| {
                                                             this.layout.select_panel_tab(BottomPanelTab::DebugConsole);
+                                                            this.save_layout();
                                                             cx.notify();
                                                         })),
                                                 )
@@ -239,6 +244,7 @@ impl Render for EditorShell {
                                                         .child("TERMINAL")
                                                         .on_click(cx.listener(|this, _, _, cx| {
                                                             this.layout.select_panel_tab(BottomPanelTab::Terminal);
+                                                            this.save_layout();
                                                             cx.notify();
                                                         })),
                                                 )
@@ -350,6 +356,8 @@ fn main() {
         panel_visible: settings.show_panel,
         sidebar_width: settings.sidebar_width,
         panel_height: settings.panel_height,
+        sidebar_view: SidebarView::from_key(&settings.sidebar_view).unwrap_or_default(),
+        active_panel_tab: BottomPanelTab::from_key(&settings.active_panel_tab).unwrap_or_default(),
         ..WorkspaceLayout::default()
     };
 
