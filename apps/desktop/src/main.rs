@@ -142,9 +142,11 @@ fn main() {
     lifecycle.started().expect("invalid startup transition");
 
     let settings = ide_settings::EditorSettings::default();
-    let mut layout = WorkspaceLayout::default();
-    layout.sidebar_visible = settings.show_sidebar;
-    layout.status_bar_visible = settings.show_status_bar;
+    let layout = WorkspaceLayout {
+        sidebar_visible: settings.show_sidebar,
+        status_bar_visible: settings.show_status_bar,
+        ..WorkspaceLayout::default()
+    };
 
     tracing::info!(app = ide_core::APPLICATION_NAME, "starting native IDE");
     Application::new().run(move |cx: &mut App| {
