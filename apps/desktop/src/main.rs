@@ -71,7 +71,7 @@ fn main() {
     lifecycle.started().expect("invalid startup transition");
     let settings = ide_settings::EditorSettings::default();
     tracing::info!(app = ide_core::APPLICATION_NAME, "starting native IDE");
-    Application::new().run(|cx: &mut App| {
+    Application::new().run(move |cx: &mut App| {
         cx.open_window(WindowOptions::default(), |_window, cx| {
             cx.new(|_| EditorShell {
                 show_sidebar: settings.show_sidebar,
