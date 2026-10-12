@@ -208,7 +208,19 @@ fn main() {
     let mut lifecycle = ide_core::state::ApplicationState::default();
     lifecycle.started().expect("invalid startup transition");
 
-    let settings = ide_settings::EditorSettings::default();
+    let settings_path = std::env::var_os("APPDATA")
+        .map(std::path::PathBuf::from)
+        .map(|path| path.join("RustTextEditor").join("settings.toml"));
+    let settings = settings_path
+        .as_deref()
+        .and_then(|path| match ide_settings::EditorSettings::load(path) {
+            Ok(settings) => Some(settings),
+            Err(error) => {
+                tracing::warn!(%error, "could not load user preferences; using defaults");
+                None
+            }
+        })
+        .unwrap_or_default();
     let layout = WorkspaceLayout {
         sidebar_visible: settings.show_sidebar,
         status_bar_visible: settings.show_status_bar,
