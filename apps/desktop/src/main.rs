@@ -1,7 +1,7 @@
 use gpui::{
     App, Application, Context, IntoElement, Render, Window, WindowOptions, div, prelude::*, rgb,
 };
-use ide_core::layout::{BottomPanelTab, SidebarView, WorkspaceLayout};
+use ide_core::layout::{BottomPanelTab, PanelDock, SidebarView, WorkspaceLayout};
 
 struct EditorShell {
     layout: WorkspaceLayout,
@@ -21,6 +21,7 @@ impl EditorShell {
         settings.panel_height = self.layout.panel_height;
         settings.sidebar_view = self.layout.sidebar_view.key().to_owned();
         settings.active_panel_tab = self.layout.active_panel_tab.key().to_owned();
+        settings.panel_dock = self.layout.panel_dock.key().to_owned();
         if let Err(error) = settings.save(path) {
             tracing::warn!(%error, "could not persist workspace layout");
         }
@@ -358,6 +359,7 @@ fn main() {
         panel_height: settings.panel_height,
         sidebar_view: SidebarView::from_key(&settings.sidebar_view).unwrap_or_default(),
         active_panel_tab: BottomPanelTab::from_key(&settings.active_panel_tab).unwrap_or_default(),
+        panel_dock: PanelDock::from_key(&settings.panel_dock).unwrap_or_default(),
         ..WorkspaceLayout::default()
     };
 
