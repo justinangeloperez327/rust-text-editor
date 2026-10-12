@@ -359,8 +359,7 @@ fn main() {
         panel_height: settings.panel_height,
         sidebar_view: SidebarView::from_key(&settings.sidebar_view).unwrap_or_default(),
         active_panel_tab: BottomPanelTab::from_key(&settings.active_panel_tab).unwrap_or_default(),
-        panel_dock: PanelDock::from_key(&settings.panel_dock).unwrap_or_default(),
-        ..WorkspaceLayout::default()
+        panel_dock: PanelDock::from_key(&settings.panel_dock).unwrap_or_default()
     };
 
     tracing::info!(app = ide_core::APPLICATION_NAME, "starting native IDE");
