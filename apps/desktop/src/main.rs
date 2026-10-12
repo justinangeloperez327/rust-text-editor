@@ -125,7 +125,35 @@ impl Render for EditorShell {
                                         .flex()
                                         .items_center()
                                         .px_3()
-                                        .child(self.layout.sidebar_view.title()),
+                                        .child(self.layout.sidebar_view.title())
+                                        .child(
+                                            div()
+                                                .id("narrow-sidebar")
+                                                .cursor_pointer()
+                                                .ml_auto()
+                                                .child("−")
+                                                .on_click(cx.listener(|this, _, _, cx| {
+                                                    this.layout.set_sidebar_width(
+                                                        this.layout.sidebar_width.saturating_sub(24),
+                                                    );
+                                                    this.save_layout();
+                                                    cx.notify();
+                                                })),
+                                        )
+                                        .child(
+                                            div()
+                                                .id("widen-sidebar")
+                                                .cursor_pointer()
+                                                .ml_3()
+                                                .child("+")
+                                                .on_click(cx.listener(|this, _, _, cx| {
+                                                    this.layout.set_sidebar_width(
+                                                        this.layout.sidebar_width.saturating_add(24),
+                                                    );
+                                                    this.save_layout();
+                                                    cx.notify();
+                                                })),
+                                        ),
                                 )
                                 .child(
                                     div()
@@ -172,6 +200,34 @@ impl Render for EditorShell {
                                                 .items_center()
                                                 .px_3()
                                                 .child("PROBLEMS      OUTPUT      DEBUG CONSOLE      TERMINAL")
+                                                .child(
+                                                    div()
+                                                        .id("shrink-panel")
+                                                        .cursor_pointer()
+                                                        .ml_auto()
+                                                        .child("−")
+                                                        .on_click(cx.listener(|this, _, _, cx| {
+                                                            this.layout.set_panel_height(
+                                                                this.layout.panel_height.saturating_sub(24),
+                                                            );
+                                                            this.save_layout();
+                                                            cx.notify();
+                                                        })),
+                                                )
+                                                .child(
+                                                    div()
+                                                        .id("grow-panel")
+                                                        .cursor_pointer()
+                                                        .ml_3()
+                                                        .child("+")
+                                                        .on_click(cx.listener(|this, _, _, cx| {
+                                                            this.layout.set_panel_height(
+                                                                this.layout.panel_height.saturating_add(24),
+                                                            );
+                                                            this.save_layout();
+                                                            cx.notify();
+                                                        })),
+                                                )
                                                 .child(
                                                     div()
                                                         .id("hide-panel")
