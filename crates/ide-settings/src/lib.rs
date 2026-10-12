@@ -10,6 +10,9 @@ pub struct EditorSettings {
     pub font_size: u16,
     pub show_sidebar: bool,
     pub show_status_bar: bool,
+    pub show_panel: bool,
+    pub sidebar_width: u16,
+    pub panel_height: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,6 +29,9 @@ impl Default for EditorSettings {
             font_size: 14,
             show_sidebar: true,
             show_status_bar: true,
+            show_panel: true,
+            sidebar_width: 240,
+            panel_height: 180,
         }
     }
 }
@@ -43,9 +49,16 @@ impl EditorSettings {
         if !(8..=72).contains(&self.font_size) {
             return Err("font_size must be between 8 and 72");
         }
+        if !(160..=600).contains(&self.sidebar_width) {
+            return Err("sidebar_width must be between 160 and 600");
+        }
+        if !(100..=480).contains(&self.panel_height) {
+            return Err("panel_height must be between 100 and 480");
+        }
         Ok(())
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -68,6 +81,14 @@ mod tests {
         let settings = EditorSettings::parse("font_size = 18").unwrap();
         assert_eq!(settings.font_size, 18);
         assert_eq!(settings.theme, Theme::Dark);
+    }
+
+    #[test]
+    fn invalid_layout_dimensions_are_rejected() {
+        let settings = EditorSettings::parse("sidebar_width = 20").unwrap();
+        assert!(settings.validate().is_err());
+        let settings = EditorSettings::parse("panel_height = 900").unwrap();
+        assert!(settings.validate().is_err());
     }
 
     #[test]
