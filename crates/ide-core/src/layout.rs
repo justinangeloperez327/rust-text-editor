@@ -196,8 +196,10 @@ mod tests {
 
     #[test]
     fn selecting_panel_tab_opens_panel() {
-        let mut layout = WorkspaceLayout::default();
-        layout.panel_visible = false;
+        let mut layout = WorkspaceLayout {
+            panel_visible: false,
+            ..WorkspaceLayout::default()
+        };
         layout.select_panel_tab(BottomPanelTab::Problems);
         assert!(layout.panel_visible);
         assert_eq!(layout.active_panel_tab, BottomPanelTab::Problems);
