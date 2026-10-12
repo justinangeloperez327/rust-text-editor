@@ -1,7 +1,7 @@
 use gpui::{
     App, Application, Context, IntoElement, Render, Window, WindowOptions, div, prelude::*, rgb,
 };
-use ide_core::layout::{SidebarView, WorkspaceLayout};
+use ide_core::layout::{BottomPanelTab, SidebarView, WorkspaceLayout};
 
 struct EditorShell {
     layout: WorkspaceLayout,
@@ -199,7 +199,49 @@ impl Render for EditorShell {
                                                 .flex()
                                                 .items_center()
                                                 .px_3()
-                                                .child("PROBLEMS      OUTPUT      DEBUG CONSOLE      TERMINAL")
+                                                .child(
+                                                    div()
+                                                        .id("tab-problems")
+                                                        .cursor_pointer()
+                                                        .child("PROBLEMS")
+                                                        .on_click(cx.listener(|this, _, _, cx| {
+                                                            this.layout.select_panel_tab(BottomPanelTab::Problems);
+                                                            cx.notify();
+                                                        })),
+                                                )
+                                                .child(
+                                                    div()
+                                                        .id("tab-output")
+                                                        .cursor_pointer()
+                                                        .ml_3()
+                                                        .child("OUTPUT")
+                                                        .on_click(cx.listener(|this, _, _, cx| {
+                                                            this.layout.select_panel_tab(BottomPanelTab::Output);
+                                                            cx.notify();
+                                                        })),
+                                                )
+                                                .child(
+                                                    div()
+                                                        .id("tab-debug-console")
+                                                        .cursor_pointer()
+                                                        .ml_3()
+                                                        .child("DEBUG CONSOLE")
+                                                        .on_click(cx.listener(|this, _, _, cx| {
+                                                            this.layout.select_panel_tab(BottomPanelTab::DebugConsole);
+                                                            cx.notify();
+                                                        })),
+                                                )
+                                                .child(
+                                                    div()
+                                                        .id("tab-terminal")
+                                                        .cursor_pointer()
+                                                        .ml_3()
+                                                        .child("TERMINAL")
+                                                        .on_click(cx.listener(|this, _, _, cx| {
+                                                            this.layout.select_panel_tab(BottomPanelTab::Terminal);
+                                                            cx.notify();
+                                                        })),
+                                                )
                                                 .child(
                                                     div()
                                                         .id("shrink-panel")
@@ -246,7 +288,7 @@ impl Render for EditorShell {
                                                 .px_3()
                                                 .py_2()
                                                 .text_color(rgb(0x999999))
-                                                .child("No active terminal"),
+                                                .child(self.layout.active_panel_tab.empty_message()),
                                         ),
                                 )
                             }),
@@ -260,7 +302,7 @@ impl Render for EditorShell {
                         .items_center()
                         .px_3()
                         .bg(rgb(0x007acc))
-                        .child("main     UTF-8      Rust Text Editor")
+                        .child("Rust Text Editor")
                         .child(
                             div()
                                 .id("toggle-panel")
