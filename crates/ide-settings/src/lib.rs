@@ -14,6 +14,8 @@ pub struct EditorSettings {
     pub show_panel: bool,
     pub sidebar_width: u16,
     pub panel_height: u16,
+    pub sidebar_view: String,
+    pub active_panel_tab: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,6 +35,8 @@ impl Default for EditorSettings {
             show_panel: true,
             sidebar_width: 240,
             panel_height: 180,
+            sidebar_view: "explorer".to_owned(),
+            active_panel_tab: "terminal".to_owned(),
         }
     }
 }
@@ -79,6 +83,18 @@ impl EditorSettings {
         }
         if !(100..=480).contains(&self.panel_height) {
             return Err("panel_height must be between 100 and 480");
+        }
+        if !matches!(
+            self.sidebar_view.as_str(),
+            "explorer" | "search" | "source-control" | "run" | "extensions"
+        ) {
+            return Err("sidebar_view is not recognized");
+        }
+        if !matches!(
+            self.active_panel_tab.as_str(),
+            "problems" | "output" | "debug-console" | "terminal"
+        ) {
+            return Err("active_panel_tab is not recognized");
         }
         Ok(())
     }
