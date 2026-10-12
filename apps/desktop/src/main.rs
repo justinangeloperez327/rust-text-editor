@@ -44,7 +44,43 @@ impl Render for EditorShell {
                     .items_center()
                     .px_3()
                     .bg(rgb(0x181818))
-                    .child("Rust Text Editor    File   Edit   Selection   View   Go   Run   Terminal   Help"),
+                    .child("Rust Text Editor    File   Edit   Selection   View   Go   Run   Terminal   Help")
+                    .child(
+                        div()
+                            .id("dock-bottom")
+                            .cursor_pointer()
+                            .ml_auto()
+                            .child("Bottom")
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.layout.set_panel_dock(PanelDock::Bottom);
+                                this.save_layout();
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        div()
+                            .id("dock-left")
+                            .cursor_pointer()
+                            .ml_3()
+                            .child("Left")
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.layout.set_panel_dock(PanelDock::Left);
+                                this.save_layout();
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        div()
+                            .id("dock-right")
+                            .cursor_pointer()
+                            .ml_3()
+                            .child("Right")
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.layout.set_panel_dock(PanelDock::Right);
+                                this.save_layout();
+                                cx.notify();
+                            })),
+                    ),
             )
             .child(
                 div()
@@ -167,6 +203,29 @@ impl Render for EditorShell {
                                 ),
                         )
                     })
+                    .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Left, |this| {
+                        this.child(
+                            div()
+                                .w(gpui::px(f32::from(self.layout.panel_height)))
+                                .flex()
+                                .flex_col()
+                                .bg(rgb(0x181818))
+                                .child(
+                                    div()
+                                        .h(gpui::px(36.0))
+                                        .flex()
+                                        .items_center()
+                                        .px_3()
+                                        .child(self.layout.active_panel_tab.title()),
+                                )
+                                .child(
+                                    div()
+                                        .p_3()
+                                        .text_color(rgb(0x999999))
+                                        .child(self.layout.active_panel_tab.empty_message()),
+                                ),
+                        )
+                    })
                     .child(
                         div()
                             .flex_1()
@@ -189,7 +248,7 @@ impl Render for EditorShell {
                                     .justify_center()
                                     .child("Open a folder or file to get started"),
                             )
-                            .when(self.layout.panel_visible, |this| {
+                            .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Bottom, |this| {
                                 this.child(
                                     div()
                                         .h(gpui::px(f32::from(self.layout.panel_height)))
@@ -299,7 +358,30 @@ impl Render for EditorShell {
                                         ),
                                 )
                             }),
-                    ),
+                    )
+                    .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Right, |this| {
+                        this.child(
+                            div()
+                                .w(gpui::px(f32::from(self.layout.panel_height)))
+                                .flex()
+                                .flex_col()
+                                .bg(rgb(0x181818))
+                                .child(
+                                    div()
+                                        .h(gpui::px(36.0))
+                                        .flex()
+                                        .items_center()
+                                        .px_3()
+                                        .child(self.layout.active_panel_tab.title()),
+                                )
+                                .child(
+                                    div()
+                                        .p_3()
+                                        .text_color(rgb(0x999999))
+                                        .child(self.layout.active_panel_tab.empty_message()),
+                                ),
+                        )
+                    }),
             )
             .when(self.layout.status_bar_visible, |this| {
                 this.child(
