@@ -5,6 +5,24 @@ use ide_core::layout::{SidebarView, WorkspaceLayout};
 
 struct EditorShell {
     layout: WorkspaceLayout,
+    settings_path: Option<std::path::PathBuf>,
+}
+
+impl EditorShell {
+    fn save_layout(&self) {
+        let Some(path) = self.settings_path.as_deref() else {
+            return;
+        };
+        let mut settings = ide_settings::EditorSettings::load(path).unwrap_or_default();
+        settings.show_sidebar = self.layout.sidebar_visible;
+        settings.show_status_bar = self.layout.status_bar_visible;
+        settings.show_panel = self.layout.panel_visible;
+        settings.sidebar_width = self.layout.sidebar_width;
+        settings.panel_height = self.layout.panel_height;
+        if let Err(error) = settings.save(path) {
+            tracing::warn!(%error, "could not persist workspace layout");
+        }
+    }
 }
 
 impl Render for EditorShell {
@@ -45,6 +63,7 @@ impl Render for EditorShell {
                                     .child("F")
                                     .on_click(cx.listener(|this, _, _, cx| {
                                         this.layout.select_view(SidebarView::Explorer);
+                                        this.save_layout();
                                         cx.notify();
                                     })),
                             )
@@ -55,6 +74,7 @@ impl Render for EditorShell {
                                     .child("S")
                                     .on_click(cx.listener(|this, _, _, cx| {
                                         this.layout.select_view(SidebarView::Search);
+                                        this.save_layout();
                                         cx.notify();
                                     })),
                             )
@@ -65,6 +85,7 @@ impl Render for EditorShell {
                                     .child("G")
                                     .on_click(cx.listener(|this, _, _, cx| {
                                         this.layout.select_view(SidebarView::SourceControl);
+                                        this.save_layout();
                                         cx.notify();
                                     })),
                             )
@@ -75,6 +96,7 @@ impl Render for EditorShell {
                                     .child("R")
                                     .on_click(cx.listener(|this, _, _, cx| {
                                         this.layout.select_view(SidebarView::Run);
+                                        this.save_layout();
                                         cx.notify();
                                     })),
                             )
@@ -85,6 +107,7 @@ impl Render for EditorShell {
                                     .child("X")
                                     .on_click(cx.listener(|this, _, _, cx| {
                                         this.layout.select_view(SidebarView::Extensions);
+                                        this.save_layout();
                                         cx.notify();
                                     })),
                             ),
@@ -157,6 +180,7 @@ impl Render for EditorShell {
                                                         .child("×")
                                                         .on_click(cx.listener(|this, _, _, cx| {
                                                             this.layout.toggle_panel();
+                                                            this.save_layout();
                                                             cx.notify();
                                                         })),
                                                 ),
@@ -189,6 +213,7 @@ impl Render for EditorShell {
                                 .child("Toggle Panel")
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.layout.toggle_panel();
+                                    this.save_layout();
                                     cx.notify();
                                 })),
                         ),
@@ -233,7 +258,10 @@ fn main() {
     tracing::info!(app = ide_core::APPLICATION_NAME, "starting native IDE");
     Application::new().run(move |cx: &mut App| {
         cx.open_window(WindowOptions::default(), move |_window, cx| {
-            cx.new(move |_| EditorShell { layout })
+            cx.new(move |_| EditorShell {
+                layout,
+                settings_path,
+            })
         })
         .expect("could not open the editor window");
         cx.activate(true);
