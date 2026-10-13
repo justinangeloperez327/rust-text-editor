@@ -220,7 +220,10 @@ mod tests {
             TextPosition { line: 1, column: 0 }
         );
         assert_eq!(
-            doc.offset_at(TextPosition { line: 10, column: 0 }),
+            doc.offset_at(TextPosition {
+                line: 10,
+                column: 0
+            }),
             Err(EditError::InvalidCharacterOffset)
         );
     }
