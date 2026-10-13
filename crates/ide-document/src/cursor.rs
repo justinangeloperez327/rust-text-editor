@@ -103,19 +103,10 @@ mod tests {
 
     #[test]
     fn batched_ranges_reject_overlaps() {
-        let mut cursors = CursorSet::new(Cursor {
-            anchor: 7,
-            head: 4,
-        });
-        cursors.add(Cursor {
-            anchor: 1,
-            head: 3,
-        });
+        let mut cursors = CursorSet::new(Cursor { anchor: 7, head: 4 });
+        cursors.add(Cursor { anchor: 1, head: 3 });
         assert_eq!(cursors.non_overlapping_ranges(), Some(vec![1..3, 4..7]));
-        cursors.add(Cursor {
-            anchor: 5,
-            head: 8,
-        });
+        cursors.add(Cursor { anchor: 5, head: 8 });
         assert_eq!(cursors.non_overlapping_ranges(), None);
     }
 
