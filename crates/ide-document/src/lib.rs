@@ -24,13 +24,17 @@ struct EditRecord {
     start: usize,
     removed: String,
     inserted: String,
+    before_state: u64,
+    after_state: u64,
 }
 
 #[derive(Debug, Clone)]
 pub struct Document {
     text: Rope,
     version: DocumentVersion,
-    saved_version: DocumentVersion,
+    saved_state: u64,
+    current_state: u64,
+    next_state: u64,
     undo: Vec<EditRecord>,
     redo: Vec<EditRecord>,
 }
@@ -41,7 +45,9 @@ impl Document {
         Self {
             text: Rope::from_str(text),
             version: DocumentVersion::default(),
-            saved_version: DocumentVersion::default(),
+            saved_state: 0,
+            current_state: 0,
+            next_state: 1,
             undo: Vec::new(),
             redo: Vec::new(),
         }
@@ -54,7 +60,7 @@ impl Document {
 
     #[must_use]
     pub fn is_modified(&self) -> bool {
-        self.version != self.saved_version
+        self.current_state != self.saved_state
     }
 
     #[must_use]
@@ -90,11 +96,16 @@ impl Document {
         }
         self.text.remove(range.clone());
         self.text.insert(range.start, replacement);
+        let after_state = self.next_state;
+        self.next_state = self.next_state.saturating_add(1);
         self.undo.push(EditRecord {
             start: range.start,
             removed,
             inserted: replacement.to_owned(),
+            before_state: self.current_state,
+            after_state,
         });
+        self.current_state = after_state;
         self.redo.clear();
         self.version = self.version.next();
         Ok(())
@@ -140,6 +151,7 @@ impl Document {
         let end = record.start + record.inserted.chars().count();
         self.text.remove(record.start..end);
         self.text.insert(record.start, &record.removed);
+        self.current_state = record.before_state;
         self.version = self.version.next();
         self.redo.push(record);
         true
@@ -152,13 +164,14 @@ impl Document {
         let end = record.start + record.removed.chars().count();
         self.text.remove(record.start..end);
         self.text.insert(record.start, &record.inserted);
+        self.current_state = record.after_state;
         self.version = self.version.next();
         self.undo.push(record);
         true
     }
 
     pub fn mark_saved(&mut self) {
-        self.saved_version = self.version;
+        self.saved_state = self.current_state;
     }
 }
 
@@ -176,6 +189,22 @@ mod tests {
         assert!(doc.redo());
         assert_eq!(doc.text(), "a🚀c");
         assert!(doc.can_undo());
+    }
+
+    #[test]
+    fn undo_to_saved_checkpoint_clears_dirty_flag() {
+        let mut doc = Document::new("abc");
+        doc.insert(3, "!").unwrap();
+        doc.mark_saved();
+        doc.insert(4, "?").unwrap();
+        assert!(doc.is_modified());
+        assert!(doc.undo());
+        assert!(!doc.is_modified());
+        assert!(doc.redo());
+        assert!(doc.is_modified());
+        assert!(doc.undo());
+        doc.insert(4, "~").unwrap();
+        assert!(doc.is_modified());
     }
 
     #[test]
