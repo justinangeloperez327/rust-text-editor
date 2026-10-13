@@ -181,6 +181,24 @@ impl Document {
         }
     }
 
+    fn line_content_length(&self, line_index: usize) -> usize {
+        let line = self.text.line(line_index);
+        let len = line.len_chars();
+        if len == 0 {
+            return 0;
+        }
+        if line.char(len - 1) == '\n' {
+            if len > 1 && line.char(len - 2) == '\r' {
+                return len - 2;
+            }
+            return len - 1;
+        }
+        if line.char(len - 1) == '\r' {
+            return len - 1;
+        }
+        len
+    }
+
     /// Move to the start or end of the current line, excluding line endings.
     pub fn move_cursor_line_boundary(
         &self,
@@ -190,10 +208,7 @@ impl Document {
     ) -> Result<(), EditError> {
         let position = self.position_at(cursor.head)?;
         let start = self.text.line_to_char(position.line);
-        let line = self.text.line(position.line);
-        let content_length = line.len_chars()
-            - usize::from(line.len_chars() > 0 && line.char(line.len_chars() - 1) == '\n')
-            - usize::from(line.len_chars() > 1 && line.char(line.len_chars() - 2) == '\r' && line.char(line.len_chars() - 1) == '\n');
+        let content_length = self.line_content_length(position.line);
         let target = if to_end { start + content_length } else { start };
         if extend_selection {
             cursor.extend_to(target);
@@ -217,10 +232,7 @@ impl Document {
             position.line.saturating_sub(1)
         };
         let start = self.text.line_to_char(target_line);
-        let line = self.text.line(target_line);
-        let content_length = line.len_chars()
-            - usize::from(line.len_chars() > 0 && line.char(line.len_chars() - 1) == '\n')
-            - usize::from(line.len_chars() > 1 && line.char(line.len_chars() - 2) == '\r' && line.char(line.len_chars() - 1) == '\n');
+        let content_length = self.line_content_length(target_line);
         let target = start + position.column.min(content_length);
         if extend_selection {
             cursor.extend_to(target);
@@ -286,6 +298,22 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn vertical_and_home_end_navigation() {
+        let doc = Document::new("abc\r\nx\nlong");
+        let mut cursor = Cursor::new(2);
+        doc.move_cursor_vertical(&mut cursor, true, false).unwrap();
+        assert_eq!(cursor, Cursor::new(6));
+        doc.move_cursor_line_boundary(&mut cursor, true, false)
+            .unwrap();
+        assert_eq!(cursor, Cursor::new(6));
+        doc.move_cursor_vertical(&mut cursor, true, true).unwrap();
+        assert_eq!(cursor.selection(), 6..8);
+        doc.move_cursor_line_boundary(&mut cursor, false, false)
+            .unwrap();
+        assert_eq!(cursor, Cursor::new(7));
+    }
 
     #[test]
     fn selection_replacement_collapses_cursor() {
