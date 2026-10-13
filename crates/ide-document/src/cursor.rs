@@ -71,6 +71,22 @@ impl CursorSet {
         }
     }
 
+    /// Return ascending, non-overlapping selections for safe batched editing.
+    ///
+    /// Adjacent selections are allowed; overlapping selections and duplicate
+    /// ranges are rejected instead of silently editing the same text twice.
+    #[must_use]
+    pub fn non_overlapping_ranges(&self) -> Option<Vec<Range<usize>>> {
+        let mut ranges: Vec<_> = self.cursors.iter().map(|cursor| cursor.selection()).collect();
+        ranges.sort_by_key(|range| (range.start, range.end));
+        if ranges.windows(2).any(|pair| {
+            pair[0].end > pair[1].start || pair[0] == pair[1]
+        }) {
+            return None;
+        }
+        Some(ranges)
+    }
+
     pub fn clear_secondary(&mut self) {
         self.cursors.truncate(1);
     }
@@ -79,6 +95,24 @@ impl CursorSet {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn batched_ranges_reject_overlaps() {
+        let mut cursors = CursorSet::new(Cursor {
+            anchor: 7,
+            head: 4,
+        });
+        cursors.add(Cursor {
+            anchor: 1,
+            head: 3,
+        });
+        assert_eq!(cursors.non_overlapping_ranges(), Some(vec![1..3, 4..7]));
+        cursors.add(Cursor {
+            anchor: 5,
+            head: 8,
+        });
+        assert_eq!(cursors.non_overlapping_ranges(), None);
+    }
 
     #[test]
     fn cursor_set_deduplicates_and_preserves_primary() {
