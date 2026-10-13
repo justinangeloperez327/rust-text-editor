@@ -209,7 +209,11 @@ impl Document {
         let position = self.position_at(cursor.head)?;
         let start = self.text.line_to_char(position.line);
         let content_length = self.line_content_length(position.line);
-        let target = if to_end { start + content_length } else { start };
+        let target = if to_end {
+            start + content_length
+        } else {
+            start
+        };
         if extend_selection {
             cursor.extend_to(target);
         } else {
