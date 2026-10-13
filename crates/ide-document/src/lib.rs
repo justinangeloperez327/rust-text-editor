@@ -2,7 +2,7 @@
 
 pub mod cursor;
 
-use cursor::TextPosition;
+use cursor::{Cursor, TextPosition};
 use ropey::Rope;
 use std::{fs, io, ops::Range, path::Path};
 
@@ -151,6 +151,45 @@ impl Document {
         self.replace(range, "")
     }
 
+    /// Replace the cursor's selection, or insert at its head.
+    /// On success the cursor collapses after the inserted text.
+    pub fn insert_at_cursor(
+        &mut self,
+        cursor: &mut Cursor,
+        text: &str,
+    ) -> Result<(), EditError> {
+        let selection = cursor.selection();
+        if selection.end > self.len_chars() {
+            return Err(EditError::InvalidCharacterOffset);
+        }
+        let next = selection.start + text.chars().count();
+        self.replace(selection, text)?;
+        cursor.collapse_to(next);
+        Ok(())
+    }
+
+    /// Move by one Unicode scalar value; optionally preserve the selection anchor.
+    pub fn move_cursor_horizontal(
+        &self,
+        cursor: &mut Cursor,
+        right: bool,
+        extend_selection: bool,
+    ) {
+        let next = if !extend_selection && cursor.has_selection() {
+            let range = cursor.selection();
+            if right { range.end } else { range.start }
+        } else if right {
+            cursor.head.saturating_add(1).min(self.len_chars())
+        } else {
+            cursor.head.saturating_sub(1)
+        };
+        if extend_selection {
+            cursor.extend_to(next);
+        } else {
+            cursor.collapse_to(next);
+        }
+    }
+
     /// Load UTF-8 text. Invalid UTF-8 and I/O failures are returned to the caller.
     pub fn open(path: &Path) -> io::Result<Self> {
         Ok(Self::new(&fs::read_to_string(path)?))
@@ -207,6 +246,31 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn selection_replacement_collapses_cursor() {
+        let mut doc = Document::new("a🚀b");
+        let mut cursor = Cursor::new(3);
+        cursor.extend_to(1);
+        doc.insert_at_cursor(&mut cursor, "é").unwrap();
+        assert_eq!(doc.text(), "aé");
+        assert_eq!(cursor, Cursor::new(2));
+        assert!(doc.undo());
+        assert_eq!(doc.text(), "a🚀b");
+    }
+
+    #[test]
+    fn cursor_movement_handles_selection_and_boundaries() {
+        let doc = Document::new("é🚀");
+        let mut cursor = Cursor::new(1);
+        doc.move_cursor_horizontal(&mut cursor, true, true);
+        assert_eq!(cursor.selection(), 1..2);
+        doc.move_cursor_horizontal(&mut cursor, false, false);
+        assert_eq!(cursor, Cursor::new(1));
+        doc.move_cursor_horizontal(&mut cursor, false, false);
+        doc.move_cursor_horizontal(&mut cursor, false, false);
+        assert_eq!(cursor, Cursor::new(0));
+    }
 
     #[test]
     fn positions_round_trip_across_unicode_and_newlines() {
