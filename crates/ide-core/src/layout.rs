@@ -186,9 +186,7 @@ impl WorkspaceLayout {
             ResizeRegion::Sidebar => (self.sidebar_width, 160.0, 600.0),
             ResizeRegion::Panel => (self.panel_height, 100.0, 480.0),
         };
-        let updated = (f32::from(current) + signed_delta)
-            .round()
-            .clamp(min, max) as u16;
+        let updated = (f32::from(current) + signed_delta).round().clamp(min, max) as u16;
         if updated == current {
             return false;
         }
