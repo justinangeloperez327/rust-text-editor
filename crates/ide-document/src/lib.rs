@@ -153,11 +153,7 @@ impl Document {
 
     /// Replace the cursor's selection, or insert at its head.
     /// On success the cursor collapses after the inserted text.
-    pub fn insert_at_cursor(
-        &mut self,
-        cursor: &mut Cursor,
-        text: &str,
-    ) -> Result<(), EditError> {
+    pub fn insert_at_cursor(&mut self, cursor: &mut Cursor, text: &str) -> Result<(), EditError> {
         let selection = cursor.selection();
         if selection.end > self.len_chars() {
             return Err(EditError::InvalidCharacterOffset);
@@ -169,12 +165,7 @@ impl Document {
     }
 
     /// Move by one Unicode scalar value; optionally preserve the selection anchor.
-    pub fn move_cursor_horizontal(
-        &self,
-        cursor: &mut Cursor,
-        right: bool,
-        extend_selection: bool,
-    ) {
+    pub fn move_cursor_horizontal(&self, cursor: &mut Cursor, right: bool, extend_selection: bool) {
         let next = if !extend_selection && cursor.has_selection() {
             let range = cursor.selection();
             if right { range.end } else { range.start }
