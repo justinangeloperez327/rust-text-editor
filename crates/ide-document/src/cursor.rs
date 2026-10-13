@@ -77,11 +77,16 @@ impl CursorSet {
     /// ranges are rejected instead of silently editing the same text twice.
     #[must_use]
     pub fn non_overlapping_ranges(&self) -> Option<Vec<Range<usize>>> {
-        let mut ranges: Vec<_> = self.cursors.iter().map(|cursor| cursor.selection()).collect();
+        let mut ranges: Vec<_> = self
+            .cursors
+            .iter()
+            .map(|cursor| cursor.selection())
+            .collect();
         ranges.sort_by_key(|range| (range.start, range.end));
-        if ranges.windows(2).any(|pair| {
-            pair[0].end > pair[1].start || pair[0] == pair[1]
-        }) {
+        if ranges
+            .windows(2)
+            .any(|pair| pair[0].end > pair[1].start || pair[0] == pair[1])
+        {
             return None;
         }
         Some(ranges)
