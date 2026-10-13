@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn positions_round_trip_across_unicode_and_newlines() {
-        let doc = Document::new("a🚀\\r\\nbé");
+        let doc = Document::new("a🚀\r\nbé");
         for offset in 0..=doc.len_chars() {
             let pos = doc.position_at(offset).unwrap();
             assert_eq!(doc.offset_at(pos).unwrap(), offset);
