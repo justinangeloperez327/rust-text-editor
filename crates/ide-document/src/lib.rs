@@ -1,7 +1,7 @@
 //! UI-independent, UTF-8-safe document model built on a rope buffer.
 
 use ropey::Rope;
-use std::ops::Range;
+use std::{fs, io, ops::Range, path::Path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DocumentVersion(pub u64);
@@ -20,10 +20,19 @@ pub enum EditError {
 }
 
 #[derive(Debug, Clone)]
+struct EditRecord {
+    start: usize,
+    removed: String,
+    inserted: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct Document {
     text: Rope,
     version: DocumentVersion,
     saved_version: DocumentVersion,
+    undo: Vec<EditRecord>,
+    redo: Vec<EditRecord>,
 }
 
 impl Document {
@@ -33,6 +42,8 @@ impl Document {
             text: Rope::from_str(text),
             version: DocumentVersion::default(),
             saved_version: DocumentVersion::default(),
+            undo: Vec::new(),
+            redo: Vec::new(),
         }
     }
 
@@ -73,8 +84,18 @@ impl Document {
         if range.start > range.end || range.end > self.text.len_chars() {
             return Err(EditError::InvalidRange);
         }
+        let removed = self.text.slice(range.clone()).to_string();
+        if removed == replacement {
+            return Ok(());
+        }
         self.text.remove(range.clone());
         self.text.insert(range.start, replacement);
+        self.undo.push(EditRecord {
+            start: range.start,
+            removed,
+            inserted: replacement.to_owned(),
+        });
+        self.redo.clear();
         self.version = self.version.next();
         Ok(())
     }
@@ -90,6 +111,52 @@ impl Document {
         self.replace(range, "")
     }
 
+    /// Load UTF-8 text. Invalid UTF-8 and I/O failures are returned to the caller.
+    pub fn open(path: &Path) -> io::Result<Self> {
+        Ok(Self::new(&fs::read_to_string(path)?))
+    }
+
+    /// Save UTF-8 text and update the clean checkpoint only after successful I/O.
+    pub fn save(&mut self, path: &Path) -> io::Result<()> {
+        fs::write(path, self.text())?;
+        self.mark_saved();
+        Ok(())
+    }
+
+    #[must_use]
+    pub fn can_undo(&self) -> bool {
+        !self.undo.is_empty()
+    }
+
+    #[must_use]
+    pub fn can_redo(&self) -> bool {
+        !self.redo.is_empty()
+    }
+
+    pub fn undo(&mut self) -> bool {
+        let Some(record) = self.undo.pop() else {
+            return false;
+        };
+        let end = record.start + record.inserted.chars().count();
+        self.text.remove(record.start..end);
+        self.text.insert(record.start, &record.removed);
+        self.version = self.version.next();
+        self.redo.push(record);
+        true
+    }
+
+    pub fn redo(&mut self) -> bool {
+        let Some(record) = self.redo.pop() else {
+            return false;
+        };
+        let end = record.start + record.removed.chars().count();
+        self.text.remove(record.start..end);
+        self.text.insert(record.start, &record.inserted);
+        self.version = self.version.next();
+        self.undo.push(record);
+        true
+    }
+
     pub fn mark_saved(&mut self) {
         self.saved_version = self.version;
     }
@@ -98,6 +165,36 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn undo_redo_unicode_edits() {
+        let mut doc = Document::new("abc");
+        doc.replace(1..2, "🚀").unwrap();
+        assert_eq!(doc.text(), "a🚀c");
+        assert!(doc.undo());
+        assert_eq!(doc.text(), "abc");
+        assert!(doc.redo());
+        assert_eq!(doc.text(), "a🚀c");
+        assert!(doc.can_undo());
+    }
+
+    #[test]
+    fn new_edit_clears_redo_history() {
+        let mut doc = Document::new("text");
+        doc.insert(4, "!").unwrap();
+        assert!(doc.undo());
+        doc.insert(4, "?").unwrap();
+        assert!(!doc.can_redo());
+        assert!(!doc.redo());
+    }
+
+    #[test]
+    fn no_op_edit_preserves_version() {
+        let mut doc = Document::new("abc");
+        doc.replace(0..3, "abc").unwrap();
+        assert_eq!(doc.version(), DocumentVersion(0));
+        assert!(!doc.can_undo());
+    }
 
     #[test]
     fn version_advances() {
