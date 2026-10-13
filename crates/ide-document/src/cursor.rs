@@ -43,7 +43,6 @@ impl Cursor {
     }
 }
 
-
 /// Ordered cursor collection for eventual multi-cursor editing.
 ///
 /// Identical anchor/head pairs are deduplicated. Overlapping selections are
