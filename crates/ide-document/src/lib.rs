@@ -2,7 +2,7 @@
 
 pub mod cursor;
 
-use cursor::{Cursor, TextPosition};
+use cursor::{Cursor, CursorSet, TextPosition};
 use ropey::Rope;
 use std::{fs, io, ops::Range, path::Path};
 
@@ -20,13 +20,19 @@ impl DocumentVersion {
 pub enum EditError {
     InvalidRange,
     InvalidCharacterOffset,
+    OverlappingSelections,
+}
+
+#[derive(Debug, Clone)]
+struct TextChange {
+    start: usize,
+    removed: String,
+    inserted: String,
 }
 
 #[derive(Debug, Clone)]
 struct EditRecord {
-    start: usize,
-    removed: String,
-    inserted: String,
+    changes: Vec<TextChange>,
     before_state: u64,
     after_state: u64,
 }
@@ -128,9 +134,11 @@ impl Document {
         let after_state = self.next_state;
         self.next_state = self.next_state.saturating_add(1);
         self.undo.push(EditRecord {
-            start: range.start,
-            removed,
-            inserted: replacement.to_owned(),
+            changes: vec![TextChange {
+                start: range.start,
+                removed,
+                inserted: replacement.to_owned(),
+            }],
             before_state: self.current_state,
             after_state,
         });
@@ -149,6 +157,49 @@ impl Document {
 
     pub fn delete(&mut self, range: Range<usize>) -> Result<(), EditError> {
         self.replace(range, "")
+    }
+
+    /// Apply non-overlapping selections as one undoable transaction.
+    /// All ranges refer to the document state before the edit.
+    pub fn replace_cursors(
+        &mut self,
+        cursors: &CursorSet,
+        replacement: &str,
+    ) -> Result<(), EditError> {
+        let ranges = cursors
+            .non_overlapping_ranges()
+            .ok_or(EditError::OverlappingSelections)?;
+        if ranges.iter().any(|range| range.end > self.len_chars()) {
+            return Err(EditError::InvalidRange);
+        }
+        let mut changes = Vec::new();
+        for range in ranges.into_iter().rev() {
+            let removed = self.text.slice(range.clone()).to_string();
+            if removed == replacement {
+                continue;
+            }
+            self.text.remove(range.clone());
+            self.text.insert(range.start, replacement);
+            changes.push(TextChange {
+                start: range.start,
+                removed,
+                inserted: replacement.to_owned(),
+            });
+        }
+        if changes.is_empty() {
+            return Ok(());
+        }
+        let after_state = self.next_state;
+        self.next_state = self.next_state.saturating_add(1);
+        self.undo.push(EditRecord {
+            changes,
+            before_state: self.current_state,
+            after_state,
+        });
+        self.current_state = after_state;
+        self.redo.clear();
+        self.version = self.version.next();
+        Ok(())
     }
 
     /// Replace the cursor's selection, or insert at its head.
@@ -272,9 +323,11 @@ impl Document {
         let Some(record) = self.undo.pop() else {
             return false;
         };
-        let end = record.start + record.inserted.chars().count();
-        self.text.remove(record.start..end);
-        self.text.insert(record.start, &record.removed);
+        for change in record.changes.iter().rev() {
+            let end = change.start + change.inserted.chars().count();
+            self.text.remove(change.start..end);
+            self.text.insert(change.start, &change.removed);
+        }
         self.current_state = record.before_state;
         self.version = self.version.next();
         self.redo.push(record);
@@ -285,9 +338,11 @@ impl Document {
         let Some(record) = self.redo.pop() else {
             return false;
         };
-        let end = record.start + record.removed.chars().count();
-        self.text.remove(record.start..end);
-        self.text.insert(record.start, &record.inserted);
+        for change in &record.changes {
+            let end = change.start + change.removed.chars().count();
+            self.text.remove(change.start..end);
+            self.text.insert(change.start, &change.inserted);
+        }
         self.current_state = record.after_state;
         self.version = self.version.next();
         self.undo.push(record);
@@ -317,6 +372,30 @@ mod tests {
         doc.move_cursor_line_boundary(&mut cursor, false, false)
             .unwrap();
         assert_eq!(cursor, Cursor::new(7));
+    }
+
+    #[test]
+    fn multi_cursor_replacement_is_single_undo_transaction() {
+        let mut doc = Document::new("abc def ghi");
+        let mut cursors = CursorSet::new(Cursor { anchor: 0, head: 3 });
+        cursors.add(Cursor { anchor: 8, head: 11 });
+        doc.replace_cursors(&cursors, "🚀").unwrap();
+        assert_eq!(doc.text(), "🚀 def 🚀");
+        assert_eq!(doc.version(), DocumentVersion(1));
+        assert!(doc.undo());
+        assert_eq!(doc.text(), "abc def ghi");
+        assert!(doc.redo());
+        assert_eq!(doc.text(), "🚀 def 🚀");
+    }
+
+    #[test]
+    fn overlapping_selections_do_not_change_text() {
+        let mut doc = Document::new("abcdef");
+        let mut cursors = CursorSet::new(Cursor { anchor: 1, head: 4 });
+        cursors.add(Cursor { anchor: 3, head: 5 });
+        assert_eq!(doc.replace_cursors(&cursors, "x"), Err(EditError::OverlappingSelections));
+        assert_eq!(doc.text(), "abcdef");
+        assert!(!doc.can_undo());
     }
 
     #[test]
