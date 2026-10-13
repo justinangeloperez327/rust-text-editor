@@ -181,6 +181,55 @@ impl Document {
         }
     }
 
+    /// Move to the start or end of the current line, excluding line endings.
+    pub fn move_cursor_line_boundary(
+        &self,
+        cursor: &mut Cursor,
+        to_end: bool,
+        extend_selection: bool,
+    ) -> Result<(), EditError> {
+        let position = self.position_at(cursor.head)?;
+        let start = self.text.line_to_char(position.line);
+        let line = self.text.line(position.line);
+        let content_length = line.len_chars()
+            - usize::from(line.len_chars() > 0 && line.char(line.len_chars() - 1) == '\n')
+            - usize::from(line.len_chars() > 1 && line.char(line.len_chars() - 2) == '\r' && line.char(line.len_chars() - 1) == '\n');
+        let target = if to_end { start + content_length } else { start };
+        if extend_selection {
+            cursor.extend_to(target);
+        } else {
+            cursor.collapse_to(target);
+        }
+        Ok(())
+    }
+
+    /// Move one logical line while preserving the current character column.
+    pub fn move_cursor_vertical(
+        &self,
+        cursor: &mut Cursor,
+        down: bool,
+        extend_selection: bool,
+    ) -> Result<(), EditError> {
+        let position = self.position_at(cursor.head)?;
+        let target_line = if down {
+            (position.line + 1).min(self.len_lines() - 1)
+        } else {
+            position.line.saturating_sub(1)
+        };
+        let start = self.text.line_to_char(target_line);
+        let line = self.text.line(target_line);
+        let content_length = line.len_chars()
+            - usize::from(line.len_chars() > 0 && line.char(line.len_chars() - 1) == '\n')
+            - usize::from(line.len_chars() > 1 && line.char(line.len_chars() - 2) == '\r' && line.char(line.len_chars() - 1) == '\n');
+        let target = start + position.column.min(content_length);
+        if extend_selection {
+            cursor.extend_to(target);
+        } else {
+            cursor.collapse_to(target);
+        }
+        Ok(())
+    }
+
     /// Load UTF-8 text. Invalid UTF-8 and I/O failures are returned to the caller.
     pub fn open(path: &Path) -> io::Result<Self> {
         Ok(Self::new(&fs::read_to_string(path)?))
