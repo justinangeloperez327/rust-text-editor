@@ -1,5 +1,8 @@
 //! UI-independent, UTF-8-safe document model built on a rope buffer.
 
+pub mod cursor;
+
+use cursor::TextPosition;
 use ropey::Rope;
 use std::{fs, io, ops::Range, path::Path};
 
@@ -83,6 +86,32 @@ impl Document {
             return None;
         }
         Some(self.text.line(index).to_string())
+    }
+
+    /// Convert a Unicode character offset into a zero-based line and column.
+    pub fn position_at(&self, offset: usize) -> Result<TextPosition, EditError> {
+        if offset > self.len_chars() {
+            return Err(EditError::InvalidCharacterOffset);
+        }
+        let line = self.text.char_to_line(offset);
+        Ok(TextPosition {
+            line,
+            column: offset - self.text.line_to_char(line),
+        })
+    }
+
+    /// Convert a zero-based line and character column into an offset.
+    /// Columns count Unicode scalar values, including line-ending characters.
+    pub fn offset_at(&self, position: TextPosition) -> Result<usize, EditError> {
+        if position.line >= self.len_lines() {
+            return Err(EditError::InvalidCharacterOffset);
+        }
+        let start = self.text.line_to_char(position.line);
+        let line_length = self.text.line(position.line).len_chars();
+        if position.column > line_length {
+            return Err(EditError::InvalidCharacterOffset);
+        }
+        Ok(start + position.column)
     }
 
     /// Replace the given range of Unicode scalar-value offsets.
@@ -178,6 +207,23 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn positions_round_trip_across_unicode_and_newlines() {
+        let doc = Document::new("a🚀\\r\\nbé");
+        for offset in 0..=doc.len_chars() {
+            let pos = doc.position_at(offset).unwrap();
+            assert_eq!(doc.offset_at(pos).unwrap(), offset);
+        }
+        assert_eq!(
+            doc.position_at(4).unwrap(),
+            TextPosition { line: 1, column: 0 }
+        );
+        assert_eq!(
+            doc.offset_at(TextPosition { line: 10, column: 0 }),
+            Err(EditError::InvalidCharacterOffset)
+        );
+    }
 
     #[test]
     fn undo_redo_unicode_edits() {
