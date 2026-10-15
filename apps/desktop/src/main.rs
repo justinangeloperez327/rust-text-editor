@@ -3,7 +3,7 @@ use gpui::{
     prelude::*, rgb,
 };
 use ide_core::layout::{BottomPanelTab, PanelDock, ResizeRegion, SidebarView, WorkspaceLayout};
-use ide_document::{Document, cursor::Cursor};
+use ide_document::{Document, cursor::{Cursor, TextPosition}};
 
 #[derive(Clone, Copy)]
 enum ResizeTarget {
@@ -472,7 +472,7 @@ impl Render for EditorShell {
                                                 let caret = self.document.position_at(self.cursor.head).ok();
                                                 let selection = self.cursor.selection();
                                                 let mut lines = div().flex().flex_col();
-                                                let mut line_offset = (0..self.viewport_start_line).map(|line| self.document.line(line).unwrap_or_default().chars().count()).sum::<usize>();
+                                                let mut line_offset = self.document.offset_at(TextPosition { line: self.viewport_start_line, column: 0 }).unwrap_or(0);
                                                 let viewport_end = self.viewport_start_line.saturating_add(200).min(self.document.len_lines());
                                                 for index in self.viewport_start_line..viewport_end {
                                                     let raw_line = self.document.line(index).unwrap_or_default();
