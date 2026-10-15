@@ -21,6 +21,7 @@ struct EditorShell {
     document_title: String,
     document_path: Option<std::path::PathBuf>,
     viewport_start_line: usize,
+    viewport_page_lines: usize,
     layout: WorkspaceLayout,
     settings_path: Option<std::path::PathBuf>,
     drag: Option<(ResizeTarget, f32)>,
@@ -87,9 +88,14 @@ impl EditorShell {
                 cx.notify();
                 return;
             }
+            "escape" => {
+                self.cursor.collapse_to(self.cursor.head);
+                cx.notify();
+                return;
+            }
             "pageup" | "pagedown" => {
                 let down = stroke.key == "pagedown";
-                for _ in 0..40 {
+                for _ in 0..self.viewport_page_lines {
                     if let Err(error) = self.document.move_cursor_vertical(
                         &mut self.cursor,
                         down,
@@ -816,6 +822,7 @@ fn main() {
                 document_title,
                 document_path,
                 viewport_start_line: 0,
+                viewport_page_lines: 40,
                 layout,
                 settings_path,
                 drag: None,
