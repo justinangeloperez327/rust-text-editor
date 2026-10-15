@@ -26,10 +26,10 @@ impl EditorShell {
     fn key_down(&mut self, event: &gpui::KeyDownEvent, cx: &mut Context<Self>) {
         let stroke = &event.keystroke;
         if (stroke.modifiers.control || stroke.modifiers.platform) && stroke.key == "s" {
-            if let Some(path) = self.document_path.as_deref() {
-                if let Err(error) = self.document.save(path) {
-                    tracing::warn!(%error, "failed to save document");
-                }
+            if let Some(path) = self.document_path.as_deref()
+                && let Err(error) = self.document.save(path)
+            {
+                tracing::warn!(%error, "failed to save document");
             }
             cx.notify();
             return;
