@@ -435,7 +435,23 @@ impl Render for EditorShell {
                                     .on_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _, cx| {
                                         this.key_down(event, cx);
                                     }))
-                                    .child(self.document.text())
+                                    .child(
+                                        div()
+                                            .flex()
+                                            .flex_col()
+                                            .child(self.document.text())
+                                            .child(
+                                                div()
+                                                    .text_color(rgb(0x4ec9b0))
+                                                    .child(format!(
+                                                        "Position: {}",
+                                                        self.document.position_at(self.cursor.head).map_or_else(
+                                                            |_| "unknown".to_owned(),
+                                                            |position| format!("{}:{}", position.line + 1, position.column + 1)
+                                                        )
+                                                    )),
+                                            ),
+                                    )
                                     .child(
                                         div()
                                             .mt_3()
