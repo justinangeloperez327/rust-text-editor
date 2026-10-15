@@ -426,6 +426,7 @@ impl Render for EditorShell {
                                     .flex_1()
                                     .p_3()
                                     .font_family("Consolas")
+                                    .id("document-editor")
                                     .key_context("DocumentEditor")
                                     .track_focus(&self.editor_focus)
                                     .on_click(cx.listener(|this, _, window, _| {
@@ -672,7 +673,7 @@ fn main() {
                 }
             }
         }
-        None => ("Untitled".to_owned(), Document::new("")),
+        None => ("Untitled".to_owned(), None, Document::new("")),
     };
 
     tracing::info!(app = ide_core::APPLICATION_NAME, "starting native IDE");
