@@ -16,6 +16,7 @@ struct EditorShell {
     cursor: Cursor,
     editor_focus: FocusHandle,
     document_title: String,
+    document_path: Option<std::path::PathBuf>,
     layout: WorkspaceLayout,
     settings_path: Option<std::path::PathBuf>,
     drag: Option<(ResizeTarget, f32)>,
@@ -24,6 +25,15 @@ struct EditorShell {
 impl EditorShell {
     fn key_down(&mut self, event: &gpui::KeyDownEvent, cx: &mut Context<Self>) {
         let stroke = &event.keystroke;
+        if (stroke.modifiers.control || stroke.modifiers.platform) && stroke.key == "s" {
+            if let Some(path) = self.document_path.as_deref() {
+                if let Err(error) = self.document.save(path) {
+                    tracing::warn!(%error, "failed to save document");
+                }
+            }
+            cx.notify();
+            return;
+        }
         if stroke.modifiers.control || stroke.modifiers.alt || stroke.modifiers.platform {
             return;
         }
@@ -651,14 +661,14 @@ fn main() {
         panel_dock: PanelDock::from_key(&settings.panel_dock).unwrap_or_default(),
     };
 
-    let (document_title, document) = match std::env::args_os().nth(1) {
+    let (document_title, document_path, document) = match std::env::args_os().nth(1) {
         Some(path) => {
             let path = std::path::PathBuf::from(path);
             match Document::open(&path) {
-                Ok(document) => (path.display().to_string(), document),
+                Ok(document) => (path.display().to_string(), Some(path), document),
                 Err(error) => {
                     tracing::warn!(%error, path = %path.display(), "could not open requested file");
-                    ("Untitled".to_owned(), Document::new(""))
+                    ("Untitled".to_owned(), None, Document::new(""))
                 }
             }
         }
@@ -673,6 +683,7 @@ fn main() {
                 editor_focus: cx.focus_handle(),
                 document,
                 document_title,
+                document_path,
                 layout,
                 settings_path,
                 drag: None,
