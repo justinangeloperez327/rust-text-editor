@@ -33,19 +33,19 @@ impl EditorShell {
         if (stroke.modifiers.control || stroke.modifiers.platform)
             && (stroke.key == "z" || stroke.key == "y")
         {
-                let redo = stroke.key == "y" || stroke.modifiers.shift;
-                let changed = if redo {
-                    self.document.redo()
-                } else {
-                    self.document.undo()
-                };
-                if changed {
-                    self.cursor
-                        .collapse_to(self.cursor.head.min(self.document.len_chars()));
-                    self.keep_cursor_in_view();
-                    cx.notify();
-                }
-                return;
+            let redo = stroke.key == "y" || stroke.modifiers.shift;
+            let changed = if redo {
+                self.document.redo()
+            } else {
+                self.document.undo()
+            };
+            if changed {
+                self.cursor
+                    .collapse_to(self.cursor.head.min(self.document.len_chars()));
+                self.keep_cursor_in_view();
+                cx.notify();
+            }
+            return;
         }
         if (stroke.modifiers.control || stroke.modifiers.platform)
             && (stroke.key == "c" || stroke.key == "x" || stroke.key == "v")
@@ -59,7 +59,11 @@ impl EditorShell {
             } else if self.cursor.has_selection() {
                 let range = self.cursor.selection();
                 let text = self.document.text();
-                let selected: String = text.chars().skip(range.start).take(range.end - range.start).collect();
+                let selected: String = text
+                    .chars()
+                    .skip(range.start)
+                    .take(range.end - range.start)
+                    .collect();
                 cx.write_to_clipboard(gpui::ClipboardItem::new_string(selected));
                 if stroke.key == "x"
                     && let Err(error) = self.document.insert_at_cursor(&mut self.cursor, "")
