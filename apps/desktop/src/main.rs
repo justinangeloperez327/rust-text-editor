@@ -17,8 +17,6 @@ enum ResizeTarget {
 struct EditorShell {
     document: Document,
     cursor: Cursor,
-    cursor_undo: Vec<Cursor>,
-    cursor_redo: Vec<Cursor>,
     editor_focus: FocusHandle,
     document_title: String,
     document_path: Option<std::path::PathBuf>,
@@ -36,24 +34,12 @@ impl EditorShell {
             && (stroke.key == "z" || stroke.key == "y")
         {
             let redo = stroke.key == "y" || stroke.modifiers.shift;
-            let previous = self.cursor;
             let changed = if redo {
                 self.document.redo()
             } else {
                 self.document.undo()
             };
             if changed {
-                if redo {
-                    self.cursor_redo.pop().map(|cursor| {
-                        self.cursor_undo.push(previous);
-                        self.cursor = cursor;
-                    });
-                } else {
-                    self.cursor_undo.pop().map(|cursor| {
-                        self.cursor_redo.push(previous);
-                        self.cursor = cursor;
-                    });
-                }
                 self.cursor
                     .collapse_to(self.cursor.head.min(self.document.len_chars()));
                 self.keep_cursor_in_view();
@@ -910,8 +896,6 @@ fn main() {
         cx.open_window(WindowOptions::default(), move |_window, cx| {
             cx.new(move |cx| EditorShell {
                 cursor: Cursor::new(document.len_chars()),
-                cursor_undo: Vec::new(),
-                cursor_redo: Vec::new(),
                 editor_focus: cx.focus_handle(),
                 document,
                 document_title,
