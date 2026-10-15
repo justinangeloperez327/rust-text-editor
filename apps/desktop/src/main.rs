@@ -58,6 +58,7 @@ impl EditorShell {
                     false,
                     stroke.modifiers.shift,
                 );
+                self.keep_cursor_in_view();
                 cx.notify();
                 return;
             }
@@ -67,6 +68,7 @@ impl EditorShell {
                     true,
                     stroke.modifiers.shift,
                 );
+                self.keep_cursor_in_view();
                 cx.notify();
                 return;
             }
@@ -78,6 +80,7 @@ impl EditorShell {
                 ) {
                     tracing::warn!(?error, "cursor movement failed");
                 }
+                self.keep_cursor_in_view();
                 cx.notify();
                 return;
             }
@@ -89,6 +92,7 @@ impl EditorShell {
                 ) {
                     tracing::warn!(?error, "cursor movement failed");
                 }
+                self.keep_cursor_in_view();
                 cx.notify();
                 return;
             }
