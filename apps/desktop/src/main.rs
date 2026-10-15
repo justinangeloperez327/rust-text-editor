@@ -47,6 +47,30 @@ impl EditorShell {
                 return;
             }
         }
+        if (stroke.modifiers.control || stroke.modifiers.platform)
+            && (stroke.key == "c" || stroke.key == "x" || stroke.key == "v")
+        {
+            if stroke.key == "v" {
+                if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text())
+                    && let Err(error) = self.document.insert_at_cursor(&mut self.cursor, &text)
+                {
+                    tracing::warn!(?error, "clipboard paste failed");
+                }
+            } else if self.cursor.has_selection() {
+                let range = self.cursor.selection();
+                let text = self.document.text();
+                let selected: String = text.chars().skip(range.start).take(range.end - range.start).collect();
+                cx.write_to_clipboard(gpui::ClipboardItem::new_string(selected));
+                if stroke.key == "x"
+                    && let Err(error) = self.document.insert_at_cursor(&mut self.cursor, "")
+                {
+                    tracing::warn!(?error, "clipboard cut failed");
+                }
+            }
+            self.keep_cursor_in_view();
+            cx.notify();
+            return;
+        }
         if (stroke.modifiers.control || stroke.modifiers.platform) && stroke.key == "a" {
             self.cursor.anchor = 0;
             self.cursor.head = self.document.len_chars();
