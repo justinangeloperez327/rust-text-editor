@@ -470,7 +470,20 @@ impl Render for EditorShell {
                                                     if caret.is_some_and(|position| position.line == index && position.column >= line.chars().count()) {
                                                         row = row.child(div().w(gpui::px(2.0)).h(gpui::px(16.0)).bg(rgb(0xd4d4d4)));
                                                     }
-                                                    lines = lines.child(row.min_h(gpui::px(18.0)));
+                                                    lines = lines.child(
+                                                        div()
+                                                            .flex()
+                                                            .items_center()
+                                                            .when(caret.is_some_and(|position| position.line == index), |element| element.bg(rgb(0x252526)))
+                                                            .child(
+                                                                div()
+                                                                    .w(gpui::px(52.0))
+                                                                    .pr_3()
+                                                                    .text_color(rgb(0x858585))
+                                                                    .child(format!("{}", index + 1)),
+                                                            )
+                                                            .child(row.min_h(gpui::px(18.0))),
+                                                    );
                                                     line_offset += raw_line.chars().count();
                                                 }
                                                 lines
