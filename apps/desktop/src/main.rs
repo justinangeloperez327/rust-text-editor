@@ -75,6 +75,33 @@ impl EditorShell {
             cx.notify();
             return;
         }
+        if (stroke.modifiers.control || stroke.modifiers.platform)
+            && stroke.key == "backspace"
+        {
+            if self.cursor.has_selection() {
+                if let Err(error) = self.document.insert_at_cursor(&mut self.cursor, "") {
+                    tracing::warn!(?error, "delete selection failed");
+                }
+            } else if self.cursor.head > 0 {
+                let text = self.document.text();
+                let chars: Vec<char> = text.chars().take(self.cursor.head).collect();
+                let mut start = chars.len();
+                while start > 0 && chars[start - 1].is_whitespace() {
+                    start -= 1;
+                }
+                while start > 0 && !chars[start - 1].is_whitespace() {
+                    start -= 1;
+                }
+                if let Err(error) = self.document.delete(start..self.cursor.head) {
+                    tracing::warn!(?error, "delete previous word failed");
+                } else {
+                    self.cursor.collapse_to(start);
+                }
+            }
+            self.keep_cursor_in_view();
+            cx.notify();
+            return;
+        }
         if (stroke.modifiers.control || stroke.modifiers.platform) && stroke.key == "a" {
             self.cursor.anchor = 0;
             self.cursor.head = self.document.len_chars();
