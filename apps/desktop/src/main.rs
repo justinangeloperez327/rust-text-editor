@@ -39,7 +39,8 @@ impl EditorShell {
                     self.document.undo()
                 };
                 if changed {
-                    self.cursor.collapse_to(self.cursor.head.min(self.document.len_chars()));
+                    self.cursor
+                        .collapse_to(self.cursor.head.min(self.document.len_chars()));
                     self.keep_cursor_in_view();
                     cx.notify();
                 }
