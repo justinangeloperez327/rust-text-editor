@@ -87,6 +87,22 @@ impl EditorShell {
                 cx.notify();
                 return;
             }
+            "pageup" | "pagedown" => {
+                let down = stroke.key == "pagedown";
+                for _ in 0..40 {
+                    if let Err(error) = self.document.move_cursor_vertical(
+                        &mut self.cursor,
+                        down,
+                        stroke.modifiers.shift,
+                    ) {
+                        tracing::warn!(?error, "page navigation failed");
+                        break;
+                    }
+                }
+                self.keep_cursor_in_view();
+                cx.notify();
+                return;
+            }
             "home" | "end" => {
                 if let Err(error) = self.document.move_cursor_line_boundary(
                     &mut self.cursor,
