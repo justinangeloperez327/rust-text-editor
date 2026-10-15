@@ -440,21 +440,26 @@ impl Render for EditorShell {
                                             .flex()
                                             .flex_col()
                                             .child({
-                                                let text = self.document.text();
-                                                let offset = self.cursor.head.min(text.chars().count());
-                                                let byte_offset = text.char_indices().nth(offset).map_or(text.len(), |(byte, _)| byte);
-                                                let (before, after) = text.split_at(byte_offset);
-                                                div()
-                                                    .flex()
-                                                    .flex_col()
-                                                    .child(before.to_owned())
-                                                    .child(
+                                                let caret = self.document.position_at(self.cursor.head).ok();
+                                                let mut lines = div().flex().flex_col();
+                                                for index in 0..self.document.len_lines() {
+                                                    let line = self.document.line(index).unwrap_or_default();
+                                                    let line = line.trim_end_matches(['\r', '\n']);
+                                                    let row = if let Some(position) = caret.filter(|position| position.line == index) {
+                                                        let split = line.char_indices().nth(position.column.min(line.chars().count())).map_or(line.len(), |(byte, _)| byte);
+                                                        let (before, after) = line.split_at(split);
                                                         div()
                                                             .flex()
                                                             .items_center()
+                                                            .child(before.to_owned())
                                                             .child(div().w(gpui::px(2.0)).h(gpui::px(16.0)).bg(rgb(0xd4d4d4)))
-                                                            .child(after.to_owned()),
-                                                    )
+                                                            .child(after.to_owned())
+                                                    } else {
+                                                        div().child(line.to_owned())
+                                                    };
+                                                    lines = lines.child(row.min_h(gpui::px(18.0)));
+                                                }
+                                                lines
                                             })
                                             .child(
                                                 div()
