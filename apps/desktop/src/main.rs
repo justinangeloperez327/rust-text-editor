@@ -1,8 +1,9 @@
 use gpui::{
-    App, Application, Context, IntoElement, Render, Window, WindowOptions, div, prelude::*, rgb,
+    App, Application, Context, FocusHandle, IntoElement, Render, Window, WindowOptions, div,
+    prelude::*, rgb,
 };
 use ide_core::layout::{BottomPanelTab, PanelDock, ResizeRegion, SidebarView, WorkspaceLayout};
-use ide_document::Document;
+use ide_document::{Document, cursor::Cursor};
 
 #[derive(Clone, Copy)]
 enum ResizeTarget {
@@ -12,6 +13,8 @@ enum ResizeTarget {
 
 struct EditorShell {
     document: Document,
+    cursor: Cursor,
+    editor_focus: FocusHandle,
     document_title: String,
     layout: WorkspaceLayout,
     settings_path: Option<std::path::PathBuf>,
@@ -19,6 +22,62 @@ struct EditorShell {
 }
 
 impl EditorShell {
+    fn key_down(&mut self, event: &gpui::KeyDownEvent, cx: &mut Context<Self>) {
+        let stroke = &event.keystroke;
+        if stroke.modifiers.control || stroke.modifiers.alt || stroke.modifiers.platform {
+            return;
+        }
+        let result = match stroke.key.as_str() {
+            "backspace" => {
+                if self.cursor.has_selection() {
+                    self.document.insert_at_cursor(&mut self.cursor, "")
+                } else if self.cursor.head > 0 {
+                    let end = self.cursor.head;
+                    self.document.delete((end - 1)..end).map(|()| {
+                        self.cursor.collapse_to(end - 1);
+                    })
+                } else {
+                    return;
+                }
+            }
+            "enter" => self.document.insert_at_cursor(&mut self.cursor, "\n"),
+            "left" => {
+                self.document.move_cursor_horizontal(&mut self.cursor, false, stroke.modifiers.shift);
+                cx.notify();
+                return;
+            }
+            "right" => {
+                self.document.move_cursor_horizontal(&mut self.cursor, true, stroke.modifiers.shift);
+                cx.notify();
+                return;
+            }
+            "up" | "down" => {
+                if let Err(error) = self.document.move_cursor_vertical(&mut self.cursor, stroke.key == "down", stroke.modifiers.shift) {
+                    tracing::warn!(?error, "cursor movement failed");
+                }
+                cx.notify();
+                return;
+            }
+            "home" | "end" => {
+                if let Err(error) = self.document.move_cursor_line_boundary(&mut self.cursor, stroke.key == "end", stroke.modifiers.shift) {
+                    tracing::warn!(?error, "cursor movement failed");
+                }
+                cx.notify();
+                return;
+            }
+            "space" => self.document.insert_at_cursor(&mut self.cursor, " "),
+            key if key.chars().count() == 1 => {
+                let text = if stroke.modifiers.shift { key.to_uppercase() } else { key.to_owned() };
+                self.document.insert_at_cursor(&mut self.cursor, &text)
+            }
+            _ => return,
+        };
+        if let Err(error) = result {
+            tracing::warn!(?error, "document input failed");
+        }
+        cx.notify();
+    }
+
     fn update_drag(&mut self, x: f32, y: f32, cx: &mut Context<Self>) {
         let Some((target, previous)) = self.drag else {
             return;
@@ -337,6 +396,14 @@ impl Render for EditorShell {
                                     .flex_1()
                                     .p_3()
                                     .font_family("Consolas")
+                                    .key_context("DocumentEditor")
+                                    .track_focus(&self.editor_focus)
+                                    .on_click(cx.listener(|this, _, window, _| {
+                                        window.focus(&this.editor_focus);
+                                    }))
+                                    .on_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _, cx| {
+                                        this.key_down(event, cx);
+                                    }))
                                     .child(self.document.text()),
                             )
                             .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Bottom, |this| {
@@ -580,7 +647,9 @@ fn main() {
     tracing::info!(app = ide_core::APPLICATION_NAME, "starting native IDE");
     Application::new().run(move |cx: &mut App| {
         cx.open_window(WindowOptions::default(), move |_window, cx| {
-            cx.new(move |_| EditorShell {
+            cx.new(move |cx| EditorShell {
+                cursor: Cursor::new(document.len_chars()),
+                editor_focus: cx.focus_handle(),
                 document,
                 document_title,
                 layout,
