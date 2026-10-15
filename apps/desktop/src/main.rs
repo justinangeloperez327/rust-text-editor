@@ -587,8 +587,15 @@ impl Render for EditorShell {
                                             .cursor_pointer()
                                             .child("Insert line")
                                             .on_click(cx.listener(|this, _, _, cx| {
-                                                if let Err(error) = this.document.insert(this.document.len_chars(), "\n") {
+                                                let before_cursor = this.cursor;
+                                                let before_version = this.document.version();
+                                                if let Err(error) = this.document.insert_at_cursor(&mut this.cursor, "\n") {
                                                     tracing::warn!(?error, "failed to insert text");
+                                                }
+                                                if this.document.version() != before_version {
+                                                    this.cursor_undo.push((before_cursor, this.cursor));
+                                                    this.cursor_redo.clear();
+                                                    this.keep_cursor_in_view();
                                                 }
                                                 cx.notify();
                                             })),
