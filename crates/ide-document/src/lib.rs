@@ -378,7 +378,10 @@ mod tests {
     fn multi_cursor_replacement_is_single_undo_transaction() {
         let mut doc = Document::new("abc def ghi");
         let mut cursors = CursorSet::new(Cursor { anchor: 0, head: 3 });
-        cursors.add(Cursor { anchor: 8, head: 11 });
+        cursors.add(Cursor {
+            anchor: 8,
+            head: 11,
+        });
         doc.replace_cursors(&cursors, "🚀").unwrap();
         assert_eq!(doc.text(), "🚀 def 🚀");
         assert_eq!(doc.version(), DocumentVersion(1));
@@ -393,7 +396,10 @@ mod tests {
         let mut doc = Document::new("abcdef");
         let mut cursors = CursorSet::new(Cursor { anchor: 1, head: 4 });
         cursors.add(Cursor { anchor: 3, head: 5 });
-        assert_eq!(doc.replace_cursors(&cursors, "x"), Err(EditError::OverlappingSelections));
+        assert_eq!(
+            doc.replace_cursors(&cursors, "x"),
+            Err(EditError::OverlappingSelections)
+        );
         assert_eq!(doc.text(), "abcdef");
         assert!(!doc.can_undo());
     }
