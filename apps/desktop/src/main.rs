@@ -435,7 +435,18 @@ impl Render for EditorShell {
                                     .on_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _, cx| {
                                         this.key_down(event, cx);
                                     }))
-                                    .child(self.document.text()),
+                                    .child(self.document.text())
+                                    .child(
+                                        div()
+                                            .mt_3()
+                                            .text_color(rgb(0x569cd6))
+                                            .child(format!(
+                                                "Caret: {} | Selection: {}..{}",
+                                                self.cursor.head,
+                                                self.cursor.selection().start,
+                                                self.cursor.selection().end
+                                            )),
+                                    ),
                             )
                             .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Bottom, |this| {
                                 this.child(
