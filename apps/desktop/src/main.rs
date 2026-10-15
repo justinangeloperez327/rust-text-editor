@@ -124,6 +124,12 @@ impl EditorShell {
         }
     }
 
+    fn scroll_lines(&mut self, lines: isize, cx: &mut Context<Self>) {
+        let maximum = self.document.len_lines().saturating_sub(1);
+        self.viewport_start_line = self.viewport_start_line.saturating_add_signed(lines).min(maximum);
+        cx.notify();
+    }
+
     fn update_drag(&mut self, x: f32, y: f32, cx: &mut Context<Self>) {
         let Some((target, previous)) = self.drag else {
             return;
@@ -447,6 +453,13 @@ impl Render for EditorShell {
                                     .track_focus(&self.editor_focus)
                                     .on_click(cx.listener(|this, _, window, _| {
                                         window.focus(&this.editor_focus);
+                                    }))
+                                    .on_scroll_wheel(cx.listener(|this, event: &gpui::ScrollWheelEvent, _, cx| {
+                                        let delta = event.delta.pixel_delta(gpui::px(18.0));
+                                        let lines = (f32::from(delta.y) / 18.0).round() as isize;
+                                        if lines != 0 {
+                                            this.scroll_lines(-lines, cx);
+                                        }
                                     }))
                                     .on_key_down(cx.listener(|this, event: &gpui::KeyDownEvent, _, cx| {
                                         this.key_down(event, cx);
