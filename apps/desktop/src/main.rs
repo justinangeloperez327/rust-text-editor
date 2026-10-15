@@ -2,6 +2,7 @@ use gpui::{
     App, Application, Context, IntoElement, Render, Window, WindowOptions, div, prelude::*, rgb,
 };
 use ide_core::layout::{BottomPanelTab, PanelDock, ResizeRegion, SidebarView, WorkspaceLayout};
+use ide_document::Document;
 
 #[derive(Clone, Copy)]
 enum ResizeTarget {
@@ -10,6 +11,8 @@ enum ResizeTarget {
 }
 
 struct EditorShell {
+    document: Document,
+    document_title: String,
     layout: WorkspaceLayout,
     settings_path: Option<std::path::PathBuf>,
     drag: Option<(ResizeTarget, f32)>,
@@ -303,15 +306,38 @@ impl Render for EditorShell {
                                     .items_center()
                                     .px_3()
                                     .bg(rgb(0x252526))
-                                    .child("Welcome"),
+                                    .child(self.document_title.clone())
+                                    .child(
+                                        div()
+                                            .id("document-append-newline")
+                                            .ml_auto()
+                                            .cursor_pointer()
+                                            .child("Insert line")
+                                            .on_click(cx.listener(|this, _, _, cx| {
+                                                if let Err(error) = this.document.insert(this.document.len_chars(), "\n") {
+                                                    tracing::warn!(?error, "failed to insert text");
+                                                }
+                                                cx.notify();
+                                            })),
+                                    )
+                                    .child(
+                                        div()
+                                            .id("document-undo")
+                                            .ml_3()
+                                            .cursor_pointer()
+                                            .child("Undo")
+                                            .on_click(cx.listener(|this, _, _, cx| {
+                                                this.document.undo();
+                                                cx.notify();
+                                            })),
+                                    ),
                             )
                             .child(
                                 div()
                                     .flex_1()
-                                    .flex()
-                                    .items_center()
-                                    .justify_center()
-                                    .child("Open a folder or file to get started"),
+                                    .p_3()
+                                    .font_family("Consolas")
+                                    .child(self.document.text()),
                             )
                             .when(self.layout.panel_visible && self.layout.panel_dock == PanelDock::Bottom, |this| {
                                 this.child(
@@ -537,10 +563,26 @@ fn main() {
         panel_dock: PanelDock::from_key(&settings.panel_dock).unwrap_or_default(),
     };
 
+    let (document_title, document) = match std::env::args_os().nth(1) {
+        Some(path) => {
+            let path = std::path::PathBuf::from(path);
+            match Document::open(&path) {
+                Ok(document) => (path.display().to_string(), document),
+                Err(error) => {
+                    tracing::warn!(%error, path = %path.display(), "could not open requested file");
+                    ("Untitled".to_owned(), Document::new(""))
+                }
+            }
+        }
+        None => ("Untitled".to_owned(), Document::new("")),
+    };
+
     tracing::info!(app = ide_core::APPLICATION_NAME, "starting native IDE");
     Application::new().run(move |cx: &mut App| {
         cx.open_window(WindowOptions::default(), move |_window, cx| {
             cx.new(move |_| EditorShell {
+                document,
+                document_title,
                 layout,
                 settings_path,
                 drag: None,
