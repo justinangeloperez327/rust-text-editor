@@ -106,7 +106,18 @@ impl EditorShell {
         if let Err(error) = result {
             tracing::warn!(?error, "document input failed");
         }
+        self.keep_cursor_in_view();
         cx.notify();
+    }
+
+    fn keep_cursor_in_view(&mut self) {
+        if let Ok(position) = self.document.position_at(self.cursor.head) {
+            if position.line < self.viewport_start_line {
+                self.viewport_start_line = position.line;
+            } else if position.line >= self.viewport_start_line.saturating_add(200) {
+                self.viewport_start_line = position.line.saturating_sub(199);
+            }
+        }
     }
 
     fn update_drag(&mut self, x: f32, y: f32, cx: &mut Context<Self>) {
