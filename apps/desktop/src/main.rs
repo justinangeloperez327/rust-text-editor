@@ -416,7 +416,6 @@ impl Render for EditorShell {
                                     .flex_1()
                                     .p_3()
                                     .font_family("Consolas")
-                                    .overflow_y_scroll()
                                     .key_context("DocumentEditor")
                                     .track_focus(&self.editor_focus)
                                     .on_click(cx.listener(|this, _, window, _| {
