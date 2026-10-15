@@ -602,7 +602,15 @@ impl Render for EditorShell {
                                             .cursor_pointer()
                                             .child("Undo")
                                             .on_click(cx.listener(|this, _, _, cx| {
-                                                this.document.undo();
+                                                if this.document.undo() {
+                                                    if let Some(pair) = this.cursor_undo.pop() {
+                                                        this.cursor_redo.push(pair);
+                                                        this.cursor = pair.0;
+                                                    } else {
+                                                        this.cursor.collapse_to(this.cursor.head.min(this.document.len_chars()));
+                                                    }
+                                                    this.keep_cursor_in_view();
+                                                }
                                                 cx.notify();
                                             })),
                                     ),
