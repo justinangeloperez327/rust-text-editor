@@ -42,24 +42,40 @@ impl EditorShell {
             }
             "enter" => self.document.insert_at_cursor(&mut self.cursor, "\n"),
             "left" => {
-                self.document.move_cursor_horizontal(&mut self.cursor, false, stroke.modifiers.shift);
+                self.document.move_cursor_horizontal(
+                    &mut self.cursor,
+                    false,
+                    stroke.modifiers.shift,
+                );
                 cx.notify();
                 return;
             }
             "right" => {
-                self.document.move_cursor_horizontal(&mut self.cursor, true, stroke.modifiers.shift);
+                self.document.move_cursor_horizontal(
+                    &mut self.cursor,
+                    true,
+                    stroke.modifiers.shift,
+                );
                 cx.notify();
                 return;
             }
             "up" | "down" => {
-                if let Err(error) = self.document.move_cursor_vertical(&mut self.cursor, stroke.key == "down", stroke.modifiers.shift) {
+                if let Err(error) = self.document.move_cursor_vertical(
+                    &mut self.cursor,
+                    stroke.key == "down",
+                    stroke.modifiers.shift,
+                ) {
                     tracing::warn!(?error, "cursor movement failed");
                 }
                 cx.notify();
                 return;
             }
             "home" | "end" => {
-                if let Err(error) = self.document.move_cursor_line_boundary(&mut self.cursor, stroke.key == "end", stroke.modifiers.shift) {
+                if let Err(error) = self.document.move_cursor_line_boundary(
+                    &mut self.cursor,
+                    stroke.key == "end",
+                    stroke.modifiers.shift,
+                ) {
                     tracing::warn!(?error, "cursor movement failed");
                 }
                 cx.notify();
@@ -67,7 +83,11 @@ impl EditorShell {
             }
             "space" => self.document.insert_at_cursor(&mut self.cursor, " "),
             key if key.chars().count() == 1 => {
-                let text = if stroke.modifiers.shift { key.to_uppercase() } else { key.to_owned() };
+                let text = if stroke.modifiers.shift {
+                    key.to_uppercase()
+                } else {
+                    key.to_owned()
+                };
                 self.document.insert_at_cursor(&mut self.cursor, &text)
             }
             _ => return,
