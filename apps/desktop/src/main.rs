@@ -17,6 +17,7 @@ struct EditorShell {
     editor_focus: FocusHandle,
     document_title: String,
     document_path: Option<std::path::PathBuf>,
+    viewport_start_line: usize,
     layout: WorkspaceLayout,
     settings_path: Option<std::path::PathBuf>,
     drag: Option<(ResizeTarget, f32)>,
@@ -443,8 +444,9 @@ impl Render for EditorShell {
                                                 let caret = self.document.position_at(self.cursor.head).ok();
                                                 let selection = self.cursor.selection();
                                                 let mut lines = div().flex().flex_col();
-                                                let mut line_offset = 0;
-                                                for index in 0..self.document.len_lines() {
+                                                let mut line_offset = (0..self.viewport_start_line).map(|line| self.document.line(line).unwrap_or_default().chars().count()).sum::<usize>();
+                                                let viewport_end = self.viewport_start_line.saturating_add(200).min(self.document.len_lines());
+                                                for index in self.viewport_start_line..viewport_end {
                                                     let raw_line = self.document.line(index).unwrap_or_default();
                                                     let line = raw_line.trim_end_matches(['\r', '\n']);
                                                     let mut row = div().flex().items_center();
@@ -760,6 +762,7 @@ fn main() {
                 document,
                 document_title,
                 document_path,
+                viewport_start_line: 0,
                 layout,
                 settings_path,
                 drag: None,
