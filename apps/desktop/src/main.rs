@@ -105,9 +105,7 @@ impl EditorShell {
             cx.notify();
             return;
         }
-        if (stroke.modifiers.control || stroke.modifiers.platform)
-            && stroke.key == "backspace"
-        {
+        if (stroke.modifiers.control || stroke.modifiers.platform) && stroke.key == "backspace" {
             if self.cursor.has_selection() {
                 if let Err(error) = self.document.insert_at_cursor(&mut self.cursor, "") {
                     tracing::warn!(?error, "delete selection failed");
@@ -607,7 +605,9 @@ impl Render for EditorShell {
                                                         this.cursor_redo.push(pair);
                                                         this.cursor = pair.0;
                                                     } else {
-                                                        this.cursor.collapse_to(this.cursor.head.min(this.document.len_chars()));
+                                                        this.cursor.collapse_to(
+                                                            this.cursor.head.min(this.document.len_chars()),
+                                                        );
                                                     }
                                                     this.keep_cursor_in_view();
                                                 }
