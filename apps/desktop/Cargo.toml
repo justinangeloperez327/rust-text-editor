@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 ide-core = { path = "../../crates/ide-core" }
+ide-document = { path = "../../crates/ide-document" }
 ide-settings = { path = "../../crates/ide-settings" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
