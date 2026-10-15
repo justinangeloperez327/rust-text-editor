@@ -92,6 +92,17 @@ impl CursorSet {
         Some(ranges)
     }
 
+    /// Update cursor heads after a successful batch edit, preserving their order.
+    pub fn collapse_to_offsets(&mut self, offsets: &[usize]) -> bool {
+        if offsets.len() != self.cursors.len() {
+            return false;
+        }
+        for (cursor, offset) in self.cursors.iter_mut().zip(offsets.iter().copied()) {
+            cursor.collapse_to(offset);
+        }
+        true
+    }
+
     pub fn clear_secondary(&mut self) {
         self.cursors.truncate(1);
     }
