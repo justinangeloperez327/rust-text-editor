@@ -3,7 +3,10 @@ use gpui::{
     prelude::*, rgb,
 };
 use ide_core::layout::{BottomPanelTab, PanelDock, ResizeRegion, SidebarView, WorkspaceLayout};
-use ide_document::{Document, cursor::{Cursor, TextPosition}};
+use ide_document::{
+    Document,
+    cursor::{Cursor, TextPosition},
+};
 
 #[derive(Clone, Copy)]
 enum ResizeTarget {
@@ -126,7 +129,10 @@ impl EditorShell {
 
     fn scroll_lines(&mut self, lines: isize, cx: &mut Context<Self>) {
         let maximum = self.document.len_lines().saturating_sub(1);
-        self.viewport_start_line = self.viewport_start_line.saturating_add_signed(lines).min(maximum);
+        self.viewport_start_line = self
+            .viewport_start_line
+            .saturating_add_signed(lines)
+            .min(maximum);
         cx.notify();
     }
 
@@ -472,7 +478,10 @@ impl Render for EditorShell {
                                                 let caret = self.document.position_at(self.cursor.head).ok();
                                                 let selection = self.cursor.selection();
                                                 let mut lines = div().flex().flex_col();
-                                                let mut line_offset = self.document.offset_at(TextPosition { line: self.viewport_start_line, column: 0 }).unwrap_or(0);
+                                                let mut line_offset = self.document.offset_at(TextPosition {
+                                                    line: self.viewport_start_line,
+                                                    column: 0,
+                                                }).unwrap_or(0);
                                                 let viewport_end = self.viewport_start_line.saturating_add(200).min(self.document.len_lines());
                                                 for index in self.viewport_start_line..viewport_end {
                                                     let raw_line = self.document.line(index).unwrap_or_default();
