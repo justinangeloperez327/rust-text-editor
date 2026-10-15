@@ -439,7 +439,23 @@ impl Render for EditorShell {
                                         div()
                                             .flex()
                                             .flex_col()
-                                            .child(self.document.text())
+                                            .child({
+                                                let text = self.document.text();
+                                                let offset = self.cursor.head.min(text.chars().count());
+                                                let byte_offset = text.char_indices().nth(offset).map_or(text.len(), |(byte, _)| byte);
+                                                let (before, after) = text.split_at(byte_offset);
+                                                div()
+                                                    .flex()
+                                                    .flex_col()
+                                                    .child(before.to_owned())
+                                                    .child(
+                                                        div()
+                                                            .flex()
+                                                            .items_center()
+                                                            .child(div().w(gpui::px(2.0)).h(gpui::px(16.0)).bg(rgb(0xd4d4d4)))
+                                                            .child(after.to_owned()),
+                                                    )
+                                            })
                                             .child(
                                                 div()
                                                     .text_color(rgb(0x4ec9b0))
