@@ -17,6 +17,8 @@ enum ResizeTarget {
 struct EditorShell {
     document: Document,
     cursor: Cursor,
+    cursor_undo: Vec<(Cursor, Cursor)>,
+    cursor_redo: Vec<(Cursor, Cursor)>,
     editor_focus: FocusHandle,
     document_title: String,
     document_path: Option<std::path::PathBuf>,
@@ -29,6 +31,19 @@ struct EditorShell {
 
 impl EditorShell {
     fn key_down(&mut self, event: &gpui::KeyDownEvent, cx: &mut Context<Self>) {
+        let before_version = self.document.version();
+        let before_cursor = self.cursor;
+        self.handle_key_down(event, cx);
+        let shortcut = &event.keystroke;
+        let undo_or_redo = (shortcut.modifiers.control || shortcut.modifiers.platform)
+            && (shortcut.key == "z" || shortcut.key == "y");
+        if !undo_or_redo && self.document.version() != before_version {
+            self.cursor_undo.push((before_cursor, self.cursor));
+            self.cursor_redo.clear();
+        }
+    }
+
+    fn handle_key_down(&mut self, event: &gpui::KeyDownEvent, cx: &mut Context<Self>) {
         let stroke = &event.keystroke;
         if (stroke.modifiers.control || stroke.modifiers.platform)
             && (stroke.key == "z" || stroke.key == "y")
@@ -40,8 +55,23 @@ impl EditorShell {
                 self.document.undo()
             };
             if changed {
-                self.cursor
-                    .collapse_to(self.cursor.head.min(self.document.len_chars()));
+                let transition = if redo {
+                    self.cursor_redo.pop().map(|pair| {
+                        self.cursor_undo.push(pair);
+                        pair.1
+                    })
+                } else {
+                    self.cursor_undo.pop().map(|pair| {
+                        self.cursor_redo.push(pair);
+                        pair.0
+                    })
+                };
+                if let Some(cursor) = transition {
+                    self.cursor = cursor;
+                } else {
+                    self.cursor
+                        .collapse_to(self.cursor.head.min(self.document.len_chars()));
+                }
                 self.keep_cursor_in_view();
                 cx.notify();
             }
@@ -923,6 +953,8 @@ fn main() {
         cx.open_window(WindowOptions::default(), move |_window, cx| {
             cx.new(move |cx| EditorShell {
                 cursor: Cursor::new(document.len_chars()),
+                cursor_undo: Vec::new(),
+                cursor_redo: Vec::new(),
                 editor_focus: cx.focus_handle(),
                 document,
                 document_title,
