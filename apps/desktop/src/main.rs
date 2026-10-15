@@ -396,6 +396,7 @@ impl Render for EditorShell {
                                     .flex_1()
                                     .p_3()
                                     .font_family("Consolas")
+                                    .overflow_y_scroll()
                                     .key_context("DocumentEditor")
                                     .track_focus(&self.editor_focus)
                                     .on_click(cx.listener(|this, _, window, _| {
@@ -578,6 +579,7 @@ impl Render for EditorShell {
                         .px_3()
                         .bg(rgb(0x007acc))
                         .child("Rust Text Editor")
+                        .child(format!("  Cursor {} / {}", self.cursor.head, self.document.len_chars()))
                         .child(
                             div()
                                 .id("toggle-panel")
