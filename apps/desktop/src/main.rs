@@ -441,23 +441,37 @@ impl Render for EditorShell {
                                             .flex_col()
                                             .child({
                                                 let caret = self.document.position_at(self.cursor.head).ok();
+                                                let selection = self.cursor.selection();
                                                 let mut lines = div().flex().flex_col();
+                                                let mut line_offset = 0;
                                                 for index in 0..self.document.len_lines() {
-                                                    let line = self.document.line(index).unwrap_or_default();
-                                                    let line = line.trim_end_matches(['\r', '\n']);
-                                                    let row = if let Some(position) = caret.filter(|position| position.line == index) {
-                                                        let split = line.char_indices().nth(position.column.min(line.chars().count())).map_or(line.len(), |(byte, _)| byte);
-                                                        let (before, after) = line.split_at(split);
-                                                        div()
-                                                            .flex()
-                                                            .items_center()
-                                                            .child(before.to_owned())
-                                                            .child(div().w(gpui::px(2.0)).h(gpui::px(16.0)).bg(rgb(0xd4d4d4)))
-                                                            .child(after.to_owned())
-                                                    } else {
-                                                        div().child(line.to_owned())
-                                                    };
+                                                    let raw_line = self.document.line(index).unwrap_or_default();
+                                                    let line = raw_line.trim_end_matches(['\r', '\n']);
+                                                    let mut row = div().flex().items_center();
+                                                    let mut segment = String::new();
+                                                    let mut highlighted = false;
+                                                    for (column, character) in line.chars().enumerate() {
+                                                        if caret.is_some_and(|position| position.line == index && position.column == column) {
+                                                            if !segment.is_empty() {
+                                                                row = row.child(div().when(highlighted, |element| element.bg(rgb(0x264f78))).child(std::mem::take(&mut segment)));
+                                                            }
+                                                            row = row.child(div().w(gpui::px(2.0)).h(gpui::px(16.0)).bg(rgb(0xd4d4d4)));
+                                                        }
+                                                        let selected = selection.contains(&(line_offset + column));
+                                                        if selected != highlighted && !segment.is_empty() {
+                                                            row = row.child(div().when(highlighted, |element| element.bg(rgb(0x264f78))).child(std::mem::take(&mut segment)));
+                                                        }
+                                                        highlighted = selected;
+                                                        segment.push(character);
+                                                    }
+                                                    if !segment.is_empty() {
+                                                        row = row.child(div().when(highlighted, |element| element.bg(rgb(0x264f78))).child(segment));
+                                                    }
+                                                    if caret.is_some_and(|position| position.line == index && position.column >= line.chars().count()) {
+                                                        row = row.child(div().w(gpui::px(2.0)).h(gpui::px(16.0)).bg(rgb(0xd4d4d4)));
+                                                    }
                                                     lines = lines.child(row.min_h(gpui::px(18.0)));
+                                                    line_offset += raw_line.chars().count();
                                                 }
                                                 lines
                                             })
