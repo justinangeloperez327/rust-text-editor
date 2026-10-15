@@ -50,6 +50,16 @@ impl EditorShell {
             return;
         }
         let result = match stroke.key.as_str() {
+            "delete" => {
+                if self.cursor.has_selection() {
+                    self.document.insert_at_cursor(&mut self.cursor, "")
+                } else if self.cursor.head < self.document.len_chars() {
+                    self.document.delete(self.cursor.head..self.cursor.head + 1)
+                } else {
+                    return;
+                }
+            }
+            "tab" => self.document.insert_at_cursor(&mut self.cursor, "    "),
             "backspace" => {
                 if self.cursor.has_selection() {
                     self.document.insert_at_cursor(&mut self.cursor, "")
