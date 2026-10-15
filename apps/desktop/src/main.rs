@@ -39,6 +39,13 @@ impl EditorShell {
             cx.notify();
             return;
         }
+        if (stroke.modifiers.control || stroke.modifiers.platform)
+            && (stroke.key == "home" || stroke.key == "end")
+        {
+            self.move_to_document_boundary(stroke.key == "end", stroke.modifiers.shift);
+            cx.notify();
+            return;
+        }
         if stroke.modifiers.control || stroke.modifiers.alt || stroke.modifiers.platform {
             return;
         }
@@ -137,6 +144,16 @@ impl EditorShell {
         }
         self.keep_cursor_in_view();
         cx.notify();
+    }
+
+    fn move_to_document_boundary(&mut self, end: bool, extend_selection: bool) {
+        let offset = if end { self.document.len_chars() } else { 0 };
+        if extend_selection {
+            self.cursor.extend_to(offset);
+        } else {
+            self.cursor.collapse_to(offset);
+        }
+        self.keep_cursor_in_view();
     }
 
     fn keep_cursor_in_view(&mut self) {
