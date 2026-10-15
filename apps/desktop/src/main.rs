@@ -30,6 +30,22 @@ struct EditorShell {
 impl EditorShell {
     fn key_down(&mut self, event: &gpui::KeyDownEvent, cx: &mut Context<Self>) {
         let stroke = &event.keystroke;
+        if stroke.modifiers.control || stroke.modifiers.platform {
+            if stroke.key == "z" || stroke.key == "y" {
+                let redo = stroke.key == "y" || stroke.modifiers.shift;
+                let changed = if redo {
+                    self.document.redo()
+                } else {
+                    self.document.undo()
+                };
+                if changed {
+                    self.cursor.collapse_to(self.cursor.head.min(self.document.len_chars()));
+                    self.keep_cursor_in_view();
+                    cx.notify();
+                }
+                return;
+            }
+        }
         if (stroke.modifiers.control || stroke.modifiers.platform) && stroke.key == "s" {
             if let Some(path) = self.document_path.as_deref()
                 && let Err(error) = self.document.save(path)
