@@ -47,6 +47,13 @@ impl EditorShell {
                 return;
             }
         }
+        if (stroke.modifiers.control || stroke.modifiers.platform) && stroke.key == "a" {
+            self.cursor.anchor = 0;
+            self.cursor.head = self.document.len_chars();
+            self.keep_cursor_in_view();
+            cx.notify();
+            return;
+        }
         if (stroke.modifiers.control || stroke.modifiers.platform) && stroke.key == "s" {
             if let Some(path) = self.document_path.as_deref()
                 && let Err(error) = self.document.save(path)
