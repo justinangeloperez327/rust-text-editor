@@ -202,6 +202,38 @@ impl Document {
         Ok(())
     }
 
+    /// Apply a grouped edit and collapse each cursor to its new text position.
+    pub fn replace_cursors_and_update(
+        &mut self,
+        cursors: &mut CursorSet,
+        replacement: &str,
+    ) -> Result<(), EditError> {
+        let ranges = cursors
+            .non_overlapping_ranges()
+            .ok_or(EditError::OverlappingSelections)?;
+        if ranges.iter().any(|range| range.end > self.len_chars()) {
+            return Err(EditError::InvalidRange);
+        }
+        let mut updated_offsets = vec![0; cursors.cursors().len()];
+        let mut original_end = 0;
+        let mut updated_end = 0;
+        let inserted_len = replacement.chars().count();
+        for range in &ranges {
+            updated_end += range.start - original_end;
+            let new_head = updated_end + inserted_len;
+            for (index, cursor) in cursors.cursors().iter().enumerate() {
+                if cursor.selection() == *range {
+                    updated_offsets[index] = new_head;
+                }
+            }
+            updated_end = new_head;
+            original_end = range.end;
+        }
+        self.replace_cursors(cursors, replacement)?;
+        cursors.collapse_to_offsets(&updated_offsets);
+        Ok(())
+    }
+
     /// Replace the cursor's selection, or insert at its head.
     /// On success the cursor collapses after the inserted text.
     pub fn insert_at_cursor(&mut self, cursor: &mut Cursor, text: &str) -> Result<(), EditError> {
@@ -372,6 +404,21 @@ mod tests {
         doc.move_cursor_line_boundary(&mut cursor, false, false)
             .unwrap();
         assert_eq!(cursor, Cursor::new(7));
+    }
+
+    #[test]
+    fn batched_edits_update_cursors_in_original_order() {
+        let mut doc = Document::new("abc def ghi");
+        let mut cursors = CursorSet::new(Cursor {
+            anchor: 8,
+            head: 11,
+        });
+        cursors.add(Cursor { anchor: 0, head: 3 });
+        doc.replace_cursors_and_update(&mut cursors, "🚀").unwrap();
+        assert_eq!(doc.text(), "🚀 def 🚀");
+        assert_eq!(cursors.cursors(), &[Cursor::new(7), Cursor::new(1)]);
+        assert!(doc.undo());
+        assert_eq!(doc.text(), "abc def ghi");
     }
 
     #[test]
